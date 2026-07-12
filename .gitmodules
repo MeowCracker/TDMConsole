@@ -1,0 +1,3 @@
+[submodule "TwitchDropsMiner"]
+	path = TwitchDropsMiner
+	url = https://github.com/DevilXD/TwitchDropsMiner.git

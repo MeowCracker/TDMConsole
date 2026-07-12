@@ -1,0 +1,6 @@
+# Minimal runtime deps for the CLI. GUI-only deps (Pillow, pystray, tkinter,
+# PyGObject, pywin32) are intentionally omitted — bootstrap.py stubs them.
+# Prefer `uv` (see README); this file is provided for reference / non-uv setups.
+aiohttp>=3.9,<4.0
+truststore
+textual>=1.0

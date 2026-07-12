@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+env/
+
+# Runtime state written into the working dir (outer repo root)
+settings.json
+cookies.jar
+log.txt
+lock.file
+dump.dat
+cache/

@@ -1,0 +1,15 @@
+[project]
+name = "tdm-cli"
+version = "0.1.0"
+description = "Headless CLI front-end for DevilXD's TwitchDropsMiner"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "aiohttp>=3.9,<4.0",
+    "textual>=8.2.8",
+    "truststore",
+]
+
+[tool.uv]
+# This is an application, not an installable library — don't try to build it.
+package = false
