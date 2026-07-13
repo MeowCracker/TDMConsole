@@ -52,6 +52,7 @@ class MinerApp(App[None]):
     BINDINGS = [
         Binding("q", "quit_miner", "Quit"),
         Binding("ctrl+c", "quit_miner", "Quit", show=False),
+        Binding("l", "login", "Login"),
         Binding("r", "reload", "Reload"),
         Binding("g", "games", "Games"),
         Binding("s", "settings", "Settings"),
@@ -129,6 +130,8 @@ class MinerApp(App[None]):
         topics = sum(t for _, t in state.websockets.values())
         if state.user_id is not None:
             user = f"user {state.user_id}"
+        elif state.login_available:
+            user = "⚠ login required — press l"
         else:
             user = state.login_status or "logged out"
         self.query_one("#header", Static).update(
@@ -268,6 +271,10 @@ class MinerApp(App[None]):
     def action_quit_miner(self) -> None:
         self._m.print("Quit requested, shutting down...")
         self._m.close()
+
+    def action_login(self) -> None:
+        if not self._m.request_login_prompt():
+            self._m.print("No pending login — you're already logged in.")
 
     def action_reload(self) -> None:
         self._m.print("Reload requested...")

@@ -220,6 +220,8 @@ class ReplApp(App[None]):
         left = Text()
         left.append("⛏ ", style="cyan")
         left.append(state.status or "starting...", style="")
+        if state.user_id is None and state.login_available:
+            left.append("  ⚠ login required — /login", style="yellow")
         if state.watching_channel:
             left.append(f" · {state.watching_channel}", style="bold")
         if state.drop_rewards:

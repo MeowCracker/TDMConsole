@@ -95,8 +95,14 @@ class TextualFrontend:
     def on_drop(self, line: str) -> None:
         pass
 
-    def show_login(self, page_url: str, user_code: str) -> None:
-        pass
+    def on_login_available(self, page_url: str, user_code: str, first: bool) -> None:
+        # Don't pop anything; just drop a hint into the scrollback. The user
+        # reveals the code via /login (REPL) or the Login action (dashboard).
+        if first:
+            self._manager.state.add_log(
+                "Twitch login required — open the login prompt to enter your code.",
+                "notify",
+            )
 
     def hide_login(self) -> None:
         pass

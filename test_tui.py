@@ -113,16 +113,26 @@ async def main() -> None:
         assert app._log_seq >= 1, "log not drained"
         print("PASS dashboard: tables + log render from state")
 
-        # --- login modal auto push/pop ------------------------------------
-        st.login_url = "https://www.twitch.tv/activate?device-code=ABCD1234"
-        st.login_code = "ABCD1234"
-        st.login_prompt = True
+        # --- login modal only opens on request, never on its own ----------
+        import asyncio as _aio
+        _aio.get_event_loop()
+        await manager.login.ask_enter_code(
+            __import__("yarl").URL("https://www.twitch.tv/activate?device-code=ABCD1234"),
+            "ABCD1234",
+        )
+        await pilot.pause(0.8)
+        assert not isinstance(app.screen, LoginScreen), "modal popped without a request!"
+        assert st.login_available and not st.login_prompt
+        # user triggers it via the Login action / 'l'
+        assert manager.request_login_prompt() is True
         await pilot.pause(0.8)
         assert isinstance(app.screen, LoginScreen), f"screen: {type(app.screen)}"
-        st.login_prompt = False
+        # success dismisses it
+        manager.login.update("Logged in", 12345678)
         await pilot.pause(0.8)
         assert not isinstance(app.screen, LoginScreen), "login screen did not close"
-        print("PASS login modal: auto push/pop from state")
+        assert not st.login_available and st.user_id == 12345678
+        print("PASS login modal: opens only on request, closes on success")
 
         # --- games screen: add via input, save on esc ---------------------
         await pilot.press("g")

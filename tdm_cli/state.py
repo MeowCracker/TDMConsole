@@ -46,7 +46,11 @@ class MinerState:
     campaign_total: int = 0
     campaign_remaining: str = "-:--:--"
 
-    # Device-code login prompt (drives the TUI modal / headless banner)
+    # Device-code login. ``login_available`` = there IS a pending device-code
+    # login the user can open; ``login_prompt`` = the user has chosen to show
+    # the modal. The modal never pops on its own — only on /login or the
+    # dashboard's Login action.
+    login_available: bool = False
     login_prompt: bool = False
     login_url: str = ""
     login_code: str = ""

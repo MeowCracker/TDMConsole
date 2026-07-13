@@ -228,16 +228,10 @@ class CommandProcessor:
         self._m.request_frontend(target)
 
     def _cmd_login(self, args: list[str]) -> None:
-        s = self._m.state
-        if s.login_prompt and s.login_url:
-            self._out("Twitch login required", "bold")
-            self._out("1. Open this URL in a browser (any device):")
-            self._out(f"     {s.login_url}", "info")
-            self._out("2. Enter this code:")
-            self._out(f"     {s.login_code}", "success")
-            self._out("Mining starts automatically once you authorize.")
+        if self._m.request_login_prompt():
+            self._out("Opening login prompt...", "info")
         else:
-            self._out("No pending login.", "dim")
+            self._out("No pending login — you're already logged in.", "dim")
 
     def _cmd_quit(self, args: list[str]) -> None:
         self._m.print("Quit requested, shutting down...")

@@ -69,8 +69,8 @@ logger = logging.getLogger("TwitchDrops")
 
 
 # Interface-mode -> frontend factory. "tui"/"repl" factories import their heavy
-# deps lazily so this module stays importable on a box without textual /
-# prompt_toolkit installed. "headless" is always available.
+# deps lazily so this module stays importable on a box without textual
+# installed. "headless" is always available.
 FRONTEND_REGISTRY: dict[str, Callable[["GUIManager"], Any]] = {}
 
 
@@ -151,6 +151,15 @@ class HeadlessFrontend:
                 webbrowser.open(page_url)
             except Exception:
                 pass
+
+    def on_login_available(self, page_url: str, user_code: str, first: bool) -> None:
+        # Headless has no way to "trigger" login, so it always shows the code.
+        if first:
+            self.show_login(page_url, user_code)
+        else:
+            console.emit(
+                f"Login code refreshed: {user_code}  ({page_url})", color=Color.YELLOW
+            )
 
     def hide_login(self) -> None:
         pass
@@ -267,10 +276,12 @@ class LoginForm:
         state = self._manager.state
         state.login_status = status
         state.user_id = user_id
-        if user_id is not None and state.login_prompt:
-            # Authorized — retire the login prompt.
-            state.login_prompt = False
-            self._manager.frontend.hide_login()
+        if user_id is not None:
+            # Authorized — retire any pending login prompt.
+            state.login_available = False
+            if state.login_prompt:
+                state.login_prompt = False
+                self._manager.frontend.hide_login()
         self._manager.frontend.on_login(status, user_id)
 
     def clear(self, login: bool = False, password: bool = False, token: bool = False) -> None:
@@ -278,15 +289,18 @@ class LoginForm:
         pass
 
     async def ask_enter_code(self, page_url: URL, user_code: str) -> None:
-        """Primary (device-code) login. Non-blocking: surface the code + URL and
-        return so the upstream OAuth poll loop can wait for activation."""
-        self.update(_("gui", "login", "required"), None)
+        """Primary (device-code) login. Non-blocking, and — crucially — it does
+        NOT pop a prompt on its own. It records the (rotating) code and marks a
+        login as available; the user reveals it via /login or the dashboard's
+        Login action. Headless has no way to trigger, so it prints immediately.
+        """
         state = self._manager.state
+        first = not state.login_available
         state.login_url = str(page_url)
         state.login_code = user_code
-        state.login_prompt = True
-        self._manager.grab_attention(sound=False)
-        self._manager.frontend.show_login(str(page_url), user_code)
+        state.login_status = _("gui", "login", "required")
+        state.login_available = True
+        self._manager.frontend.on_login_available(str(page_url), user_code, first)
 
     async def ask_login(self) -> LoginData:
         """Legacy username/password flow (rarely reached). Prompts on the TTY
@@ -676,6 +690,14 @@ class GUIManager:
     def grab_attention(self, *, sound: bool = True) -> None:
         if sound:
             self.frontend.attention()
+
+    def request_login_prompt(self) -> bool:
+        """User asked to see the device-code login (via /login or the dashboard
+        Login action). Returns False if there's nothing pending."""
+        if self.state.login_available:
+            self.state.login_prompt = True
+            return True
+        return False
 
     def set_games(self, games: set[Game]) -> None:
         self.settings.set_games(games)

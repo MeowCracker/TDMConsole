@@ -79,9 +79,16 @@ class FakeTwitch:
         self.closed = True
 
 
-def _make_manager():
+def _make_manager(repl_frontend: bool = False):
     twitch = FakeTwitch()
     manager = cli_gui.GUIManager(twitch)
+    if repl_frontend:
+        # Faithful wiring for the ReplApp test: login hints go to state.log
+        # (via the Textual frontend) instead of the headless banner.
+        from tdm_cli.tui import TextualFrontend
+
+        manager.frontend = TextualFrontend(manager)
+        manager.mode = "repl"
     twitch.channels[1] = FakeChannel(1, "shroud", "Rust")
     twitch.channels[2] = FakeChannel(2, "summit1g", "Rust", online=False)
     twitch.inventory = [FakeCampaign("Rust", "Rust Drops", 3, 10, 0.3)]
@@ -151,7 +158,7 @@ async def test_repl_app() -> None:
 
     from tdm_cli.tui.repl_app import ReplApp, CommandInput
 
-    manager, twitch = _make_manager()
+    manager, twitch = _make_manager(repl_frontend=True)
     app = ReplApp(manager)
     async with app.run_test(size=(140, 40)) as pilot:
         await pilot.pause(0.3)
@@ -193,17 +200,36 @@ async def test_repl_app() -> None:
         assert app.query_one("#status-line", Static).content is not None
         print("PASS status line renders miner state")
 
-        # login modal auto push/pop
-        manager.state.login_url = "https://twitch.tv/activate?device-code=ABCD"
-        manager.state.login_code = "ABCD1234"
-        manager.state.login_prompt = True
+        # login modal opens only on request, never on ask_enter_code
+        await manager.login.ask_enter_code(
+            URL("https://twitch.tv/activate?device-code=ABCD"), "ABCD1234"
+        )
         await pilot.pause(0.8)
         from tdm_cli.tui.screens import LoginScreen
-        assert isinstance(app.screen, LoginScreen), f"screen={type(app.screen)}"
-        manager.state.login_prompt = False
+        assert not isinstance(app.screen, LoginScreen), "modal popped without /login!"
+        assert manager.state.login_available and not manager.state.login_prompt
+        assert any("login required" in e.text.lower() for e in manager.state.log_lines), "no hint"
+        # code rotation stays silent
+        await manager.login.ask_enter_code(
+            URL("https://twitch.tv/activate?device-code=ROT2"), "ROT22222"
+        )
+        await pilot.pause(0.4)
+        assert not isinstance(app.screen, LoginScreen) and manager.state.login_code == "ROT22222"
+        # /login command reveals it
+        cmd.focus()
+        cmd.value = "/login"
+        await pilot.press("enter")
         await pilot.pause(0.8)
-        assert not isinstance(app.screen, LoginScreen)
-        print("PASS login modal auto push/pop")
+        assert isinstance(app.screen, LoginScreen), f"screen={type(app.screen)}"
+        # Esc hides without cancelling
+        await pilot.press("escape")
+        await pilot.pause(0.6)
+        assert not isinstance(app.screen, LoginScreen) and manager.state.login_available
+        # success clears it
+        manager.login.update("Logged in", 999)
+        await pilot.pause(0.6)
+        assert not manager.state.login_available and manager.state.user_id == 999
+        print("PASS login: no auto-pop, /login reveals, Esc hides, success clears")
 
         # ctrl+c quits
         await pilot.press("ctrl+c")

@@ -44,11 +44,18 @@ class LoginScreen(ModalScreen[None]):
     }
     """
 
-    BINDINGS = [Binding("q", "app.quit_miner", "Quit")]
+    BINDINGS = [
+        Binding("escape", "hide", "Hide"),
+        Binding("q", "app.quit_miner", "Quit"),
+    ]
 
     def __init__(self, manager: GUIManager) -> None:
         super().__init__()
         self._m = manager
+
+    def action_hide(self) -> None:
+        # Close the modal but keep the login poll running in the background.
+        self._m.state.login_prompt = False
 
     def compose(self):
         with Vertical(id="login-box"):
