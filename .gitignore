@@ -6,8 +6,12 @@ env/
 
 # Runtime state written into the working dir (outer repo root)
 settings.json
+tdm-cli.json
 cookies.jar
 log.txt
 lock.file
 dump.dat
 cache/
+
+# Any backup files
+*.bak

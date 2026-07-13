@@ -68,6 +68,22 @@ _T = TypeVar("_T")
 logger = logging.getLogger("TwitchDrops")
 
 
+# Interface-mode -> frontend factory. "tui"/"repl" factories import their heavy
+# deps lazily so this module stays importable on a box without textual /
+# prompt_toolkit installed. "headless" is always available.
+FRONTEND_REGISTRY: dict[str, Callable[["GUIManager"], Any]] = {}
+
+
+def register_frontend(mode: str, factory: Callable[["GUIManager"], Any]) -> None:
+    FRONTEND_REGISTRY[mode] = factory
+
+
+def make_frontend(mode: str, manager: GUIManager) -> Any:
+    factory = FRONTEND_REGISTRY.get(mode) or FRONTEND_REGISTRY["headless"]
+    return factory(manager)
+
+
+
 # --------------------------------------------------------------------------- #
 # Frontends
 # --------------------------------------------------------------------------- #
@@ -140,8 +156,26 @@ class HeadlessFrontend:
         pass
 
 
-# main.py swaps this for TextualFrontend when a TUI should be shown.
-FRONTEND_FACTORY: Callable[["GUIManager"], Any] = HeadlessFrontend
+# The interface mode used for the *initial* frontend; main.py sets this before
+# Twitch() is constructed. Live switching goes through GUIManager.request_frontend.
+ACTIVE_MODE: str = "headless"
+
+
+def _lazy_tui(manager: "GUIManager") -> Any:
+    from tdm_cli.tui import TextualFrontend
+
+    return TextualFrontend(manager)
+
+
+def _lazy_repl(manager: "GUIManager") -> Any:
+    from tdm_cli.repl import ReplFrontend
+
+    return ReplFrontend(manager)
+
+
+register_frontend("tui", _lazy_tui)
+register_frontend("repl", _lazy_repl)
+register_frontend("headless", HeadlessFrontend)
 
 
 class _ConsoleLogHandler(logging.Handler):
@@ -505,7 +539,9 @@ class GUIManager:
         self._poll_task: asyncio.Task[None] | None = None
 
         self.state = MinerState()
-        self.frontend = FRONTEND_FACTORY(self)
+        self.mode = ACTIVE_MODE
+        self.frontend = make_frontend(self.mode, self)
+        self._switch_task: asyncio.Task[None] | None = None
 
         # Components (order-independent; none touch a display)
         self.status = StatusBar(self)
@@ -573,6 +609,55 @@ class GUIManager:
             self._poll_task.cancel()
             self._poll_task = None
         self.frontend.stop()
+
+    def request_frontend(self, mode: str) -> None:
+        """Switch the interface mode live, without interrupting mining.
+
+        Tears the current frontend down and brings the new one up on the same
+        loop. Persists the choice so it sticks across restarts. Safe to call
+        from within a frontend (e.g. the REPL's ``/switch-mode``).
+        """
+        if mode == self.mode or self._switch_task is not None:
+            return
+        self._switch_task = asyncio.create_task(self._switch_frontend(mode))
+
+    async def _switch_frontend(self, mode: str) -> None:
+        try:
+            from tdm_cli import prefs
+
+            old = self.frontend
+            # Tear the old frontend down intentionally (won't trip its
+            # crash/close-the-miner guard).
+            if hasattr(old, "begin_intentional_stop"):
+                old.begin_intentional_stop()
+            old.stop()
+            # Wait for teardown WITHOUT awaiting the old frontend's own task
+            # directly: a REPL-initiated switch runs on that very task, so
+            # awaiting it would deadlock. Poll a readiness predicate instead,
+            # yielding control so the old loop can unwind first.
+            if hasattr(old, "is_stopped"):
+                for _ in range(200):  # ~10s safety cap
+                    if old.is_stopped():
+                        break
+                    await asyncio.sleep(0.05)
+            elif hasattr(old, "wait_stopped"):
+                await old.wait_stopped()
+
+            self.mode = mode
+            try:
+                prefs.save_mode(mode)
+            except Exception:
+                pass
+            self.frontend = make_frontend(mode, self)
+            self.frontend.start()
+            self.print(f"Interface mode switched to: {mode}")
+            if mode == "headless":
+                self.print(
+                    "Headless has no interactive input — Ctrl+C exits; "
+                    "restart with --mode tui or --mode repl to switch back."
+                )
+        finally:
+            self._switch_task = None
 
     def close(self, *args: Any) -> int:
         """Request shutdown (quit key / Ctrl+C / SIGTERM / fatal error path)."""

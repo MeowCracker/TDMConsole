@@ -22,27 +22,44 @@ class TextualFrontend:
         self._manager = manager
         self._app: MinerApp | None = None
         self._app_task: asyncio.Task[Any] | None = None
+        self._intentional_stop = False
 
     # lifecycle -------------------------------------------------------------
+    def _make_app(self) -> "MinerApp":
+        """Factory for the Textual app this frontend runs. Subclasses (the
+        Claude-Code-style REPL) override this to supply a different app."""
+        from tdm_cli.tui.app import MinerApp
+
+        return MinerApp(self._manager)
+
     def start(self) -> None:
         if self._app_task is None:
-            from tdm_cli.tui.app import MinerApp
-
-            self._app = MinerApp(self._manager)
+            self._app = self._make_app()
             self._app_task = asyncio.create_task(self._app.run_async())
             self._app_task.add_done_callback(self._on_app_done)
 
+    def begin_intentional_stop(self) -> None:
+        """Mark the next teardown as a mode switch, not a crash — so the
+        done-callback won't tear the whole miner down."""
+        self._intentional_stop = True
+
     def _on_app_done(self, task: asyncio.Task[Any]) -> None:
         # If the TUI dies (crash or unexpected exit) while the miner still runs,
-        # unwind the whole program instead of mining blind.
+        # unwind the whole program instead of mining blind — unless this was an
+        # intentional mode switch.
         if not task.cancelled() and (exc := task.exception()) is not None:
             print(f"TUI crashed: {exc!r}", file=sys.stderr)
+        if self._intentional_stop:
+            return
         if not self._manager.close_requested:
             self._manager.close()
 
     def stop(self) -> None:
         if self._app is not None and self._app.is_running:
             self._app.exit()
+
+    def is_stopped(self) -> bool:
+        return self._app_task is None or self._app_task.done()
 
     async def wait_stopped(self) -> None:
         """Await full app teardown so the terminal is restored before exit."""

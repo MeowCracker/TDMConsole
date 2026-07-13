@@ -312,6 +312,16 @@ class SettingsScreen(Screen[None]):
         languages = sorted({DEFAULT_LANG, *(p.stem for p in LANG_PATH.glob("*.json"))})
         yield Static("Settings", id="settings-title")
         with Horizontal():
+            yield Label("Interface mode")
+            yield Select(
+                [("Full-screen dashboard (TUI)", "tui"),
+                 ("Command REPL (Claude-Code style)", "repl"),
+                 ("Plain log (headless)", "headless")],
+                value=self._m.mode,
+                allow_blank=False,
+                id="set-mode",
+            )
+        with Horizontal():
             yield Label("Proxy URL")
             yield Input(value=str(settings.proxy), placeholder="(none)", id="set-proxy")
         with Horizontal():
@@ -346,6 +356,7 @@ class SettingsScreen(Screen[None]):
 
     def action_save_close(self) -> None:
         settings = self._m._twitch.settings
+        new_mode = str(self.query_one("#set-mode", Select).value)
         proxy_text = self.query_one("#set-proxy", Input).value.strip()
         new_proxy = URL(proxy_text) if proxy_text else URL()
         proxy_changed = str(new_proxy) != str(settings.proxy)
@@ -361,3 +372,6 @@ class SettingsScreen(Screen[None]):
             self._m.print("Proxy changed — reloading...")
             self._m._twitch.change_state(State.RESTART)
         self.dismiss()
+        if new_mode != self._m.mode:
+            # Hot-swap the interface after this screen has closed.
+            self._m.request_frontend(new_mode)

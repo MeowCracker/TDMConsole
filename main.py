@@ -36,6 +36,7 @@ if __name__ == "__main__":
         _cookie: str | None
         _jar: str | None
         _no_tui: bool
+        _mode: str | None
         check_contract: bool
 
         @property
@@ -91,9 +92,13 @@ if __name__ == "__main__":
         help="path of the cookie jar file (default: ./cookies.jar)",
     )
     parser.add_argument(
+        "--mode", dest="_mode", choices=("tui", "repl", "headless"), default=None,
+        help="interface mode: tui (full-screen dashboard), repl (slash-command "
+             "prompt), headless (plain logs); default: saved preference, else tui",
+    )
+    parser.add_argument(
         "--no-tui", dest="_no_tui", action="store_true",
-        help="disable the interactive dashboard; log plain lines instead "
-             "(automatic when stdout is not a terminal)",
+        help="alias for --mode headless (automatic when stdout is not a terminal)",
     )
     parser.add_argument(
         "-v", dest="_verbose", action="count", default=0,
@@ -204,14 +209,22 @@ if __name__ == "__main__":
         jar.update_cookies(cookie, client_url)
         jar.save(jar_path)
 
-    # Frontend selection: full-screen TUI on an interactive terminal,
-    # plain log lines otherwise (pipes, services, --no-tui).
-    use_tui = console.INTERACTIVE and not args._no_tui
-    if use_tui:
-        import tdm_cli.gui as cli_gui
-        from tdm_cli.tui import TextualFrontend
+    # Frontend selection: explicit --mode > saved preference (tdm-cli.json) >
+    # default (TUI). Interactive modes fall back to headless without a TTY.
+    from tdm_cli import prefs
 
-        cli_gui.FRONTEND_FACTORY = TextualFrontend
+    if args._mode is not None:
+        mode = args._mode
+    elif args._no_tui:
+        mode = "headless"
+    else:
+        mode = prefs.load_mode() or prefs.DEFAULT_MODE
+    if mode in ("tui", "repl") and not console.INTERACTIVE:
+        mode = "headless"
+
+    import tdm_cli.gui as cli_gui
+
+    cli_gui.ACTIVE_MODE = mode
 
     async def main() -> None:
         # Language
@@ -272,7 +285,7 @@ if __name__ == "__main__":
         # Fully tear down the TUI (restores the terminal) before exiting.
         await client.gui.frontend.wait_stopped()
         client.gui.close_window()
-        if use_tui and exit_status != 0:
+        if client.gui.mode == "tui" and exit_status != 0:
             # The dashboard is gone; repeat the tail of the log so the error
             # stays visible in the plain terminal.
             for entry in list(client.gui.state.log_lines)[-15:]:
