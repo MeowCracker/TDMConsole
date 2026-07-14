@@ -157,6 +157,28 @@ async def main() -> None:
                 # Channel rows use an explicit switch button (arrow icon), not a
                 # whole-row click, so switching channels is unambiguous.
                 assert "i-switch" in js and "c.locked" in js
+                # i18n: client fetches catalogue + applies static translations
+                assert "applyStaticI18n" in js and "/i18n/" in js
+                # render() must not reference curLang — that's a local in
+                # openSettings(); an out-of-scope ref throws ReferenceError and
+                # aborts every render (login/channels never update).
+                _render = js[js.index("function render(s)"):]
+                _render = _render[:_render.index("\nfunction ")]
+                assert "curLang" not in _render, "render() references out-of-scope curLang"
+            # i18n endpoints: /meta lists upstream languages + repo/version,
+            # /i18n/<lang> returns a flat catalogue reusing upstream translations.
+            async with sess.get("http://127.0.0.1:8199/meta") as r:
+                assert r.status == 200
+                meta = await r.json()
+                assert meta["repo"] and "languages" in meta
+                codes = [l["code"] for l in meta["languages"]]
+                assert "English" in codes and "简体中文" in codes
+            async with sess.get("http://127.0.0.1:8199/i18n/简体中文") as r:
+                assert r.status == 200
+                zh = await r.json()
+                # upstream-sourced term + WebUI-specific term both present
+                assert zh.get("col.channel") and zh.get("btn.reload")
+                assert zh["btn.reload"] != "Reload", "Chinese catalogue not translated"
                 assert "pin-btn" not in js  # old ambiguous pin button is gone
             print("PASS HTTP: assets + no-store + overlay/icons/games/theme guards")
 
@@ -227,6 +249,21 @@ async def main() -> None:
     assert "_read_valid_cookie_bytes" in main_src and "_restore_cookies_if_emptied" in main_src, \
         "cookie-loss guard missing from main.py shutdown path"
     print("PASS regression: cookie-loss guard present in shutdown path")
+
+    # Regression: every language in _EXTRA must carry the full English key set,
+    # and its keys must match a real upstream lang-file stem (else the WebUI
+    # falls back to English silently). Guards against half-translated additions.
+    from tdm_cli.web import i18n
+    en_keys = set(i18n._EXTRA["English"])
+    for code, strings in i18n._EXTRA.items():
+        missing = en_keys - set(strings)
+        assert not missing, f"{code} missing WebUI keys: {sorted(missing)}"
+    stems = {l["code"] for l in i18n.available_languages()}
+    orphans = set(i18n._EXTRA) - stems
+    assert not orphans, f"_EXTRA has keys with no upstream lang file: {sorted(orphans)}"
+    assert len(i18n._EXTRA) == len(stems), \
+        f"not every language has WebUI translations: {sorted(stems - set(i18n._EXTRA))}"
+    print(f"PASS i18n coverage: {len(i18n._EXTRA)} languages, all {len(en_keys)} WebUI keys each")
 
     print("ALL WEB TESTS PASSED")
 

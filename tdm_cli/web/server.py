@@ -28,6 +28,9 @@ logger = logging.getLogger("TwitchDrops")
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
+# Shown in the WebUI footer under the Settings button (source & docs link).
+REPO_URL = "https://github.com/MeowCracker/TDM-CLI"
+
 
 def snapshot(manager: GUIManager) -> dict[str, Any]:
     """A JSON-serialisable view of the whole miner state for the browser."""
@@ -143,6 +146,8 @@ class WebServer:
                 web.get("/", self._handle_index),
                 web.get("/ws", self._handle_ws),
                 web.get("/static/{name}", self._handle_static),
+                web.get("/meta", self._handle_meta),
+                web.get("/i18n/{lang}", self._handle_i18n),
             ]
         )
         self._runner = web.AppRunner(app)
@@ -192,6 +197,29 @@ class WebServer:
         if not path.is_file():
             raise web.HTTPNotFound()
         return web.FileResponse(path, headers=self._NO_STORE)
+
+    async def _handle_meta(self, request: web.Request) -> web.StreamResponse:
+        from tdm_cli.web import i18n
+
+        try:
+            from version import __version__
+        except Exception:
+            __version__ = "?"
+        return web.json_response(
+            {
+                "version": __version__,
+                "repo": REPO_URL,
+                "languages": i18n.available_languages(),
+                "default": i18n.default_language(),
+            },
+            headers=self._NO_STORE,
+        )
+
+    async def _handle_i18n(self, request: web.Request) -> web.StreamResponse:
+        from tdm_cli.web import i18n
+
+        lang = request.match_info["lang"]
+        return web.json_response(i18n.strings_for(lang), headers=self._NO_STORE)
 
     async def _handle_ws(self, request: web.Request) -> web.WebSocketResponse:
         ws = web.WebSocketResponse(heartbeat=30)

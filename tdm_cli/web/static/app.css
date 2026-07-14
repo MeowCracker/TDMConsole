@@ -355,6 +355,21 @@ tbody tr.locked { background: var(--accent-faint); }
 .row-btn:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 1px; }
 .row-btn:disabled { opacity: .35; cursor: not-allowed; }
 
+/* --- repo / version footer (under the Settings button) ------------------- */
+.repo-info {
+  margin-top: var(--s2); padding-top: var(--s3);
+  border-top: 1px solid var(--glass-hair);
+  display: flex; flex-direction: column; gap: 2px;
+  font-size: var(--t-xs); text-align: center;
+}
+.repo-link {
+  color: var(--accent-lighter); text-decoration: none; font-weight: 500;
+  border-radius: 6px; padding: 2px 4px;
+}
+.repo-link:hover { text-decoration: underline; color: var(--accent-light); }
+.repo-link:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 2px; }
+.repo-ver { color: var(--text-muted); font-family: var(--font-mono); }
+
 /* --- campaign cards ------------------------------------------------------ */
 .cards { display: flex; flex-direction: column; gap: var(--s3); max-height: 320px; overflow: auto; }
 .card {

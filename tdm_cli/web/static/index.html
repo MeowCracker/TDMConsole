@@ -10,7 +10,7 @@
     href="https://fonts.googleapis.com/css2?family=Germania+One&family=JetBrains+Mono:wght@400;600&family=Roboto:wght@300;400;500;700;900&display=swap"
     rel="stylesheet"
   />
-  <link rel="stylesheet" href="/static/app.css?v=9" />
+  <link rel="stylesheet" href="/static/app.css?v=11" />
 </head>
 <body>
   <!-- icon sprite (referenced via <use href="#i-..."/>); currentColor-tinted -->
@@ -40,27 +40,27 @@
 
   <!-- login-required call-to-action strip (hidden until needed) -->
   <div id="login-strip" class="login-strip" hidden>
-    <span>⚠ Twitch login required.</span>
-    <button class="btn btn-primary" id="login-cta" type="button"><svg class="ico" aria-hidden="true"><use href="#i-login"/></svg><span>Log in</span></button>
+    <span data-i18n="login.required">⚠ Twitch login required.</span>
+    <button class="btn btn-primary" id="login-cta" type="button"><svg class="ico" aria-hidden="true"><use href="#i-login"/></svg><span data-i18n="btn.login">Log in</span></button>
   </div>
 
   <main class="panel-grid">
     <!-- gauge cluster -->
     <section class="panel gauges" aria-labelledby="mining-h">
-      <h2 id="mining-h" class="panel-title">Now mining</h2>
+      <h2 id="mining-h" class="panel-title" data-i18n="mining.now">Now mining</h2>
       <div class="now-mining">
-        <div class="chip"><span class="chip-label">Game</span><span id="cur-game" class="chip-value">—</span></div>
-        <div class="chip"><span class="chip-label">Channel</span><span id="cur-channel" class="chip-value">—</span></div>
+        <div class="chip"><span class="chip-label" data-i18n="progress.game">Game</span><span id="cur-game" class="chip-value">—</span></div>
+        <div class="chip"><span class="chip-label" data-i18n="col.channel">Channel</span><span id="cur-channel" class="chip-value">—</span></div>
       </div>
       <div class="gauge">
-        <div class="gauge-head"><span id="drop-rewards">No active drop</span><span id="drop-remaining" class="mono">—</span></div>
+        <div class="gauge-head"><span id="drop-rewards" data-i18n="mining.no_drop">No active drop</span><span id="drop-remaining" class="mono">—</span></div>
         <div class="meter" role="progressbar" aria-labelledby="drop-rewards" aria-valuemin="0" aria-valuemax="100" id="drop-meter">
           <div class="meter-fill" id="drop-fill"></div>
           <span class="meter-pct mono" id="drop-pct">0%</span>
         </div>
       </div>
       <div class="gauge">
-        <div class="gauge-head"><span id="camp-name">Campaign</span><span id="camp-remaining" class="mono">—</span></div>
+        <div class="gauge-head"><span id="camp-name" data-i18n="progress.campaign">Campaign</span><span id="camp-remaining" class="mono">—</span></div>
         <div class="meter meter-alt" role="progressbar" aria-labelledby="camp-name" aria-valuemin="0" aria-valuemax="100" id="camp-meter">
           <div class="meter-fill" id="camp-fill"></div>
           <span class="meter-pct mono" id="camp-pct">0%</span>
@@ -72,32 +72,38 @@
 
     <!-- controls -->
     <section class="panel controls" aria-label="Controls">
-      <button class="btn" id="btn-reload" type="button"><svg class="ico" aria-hidden="true"><use href="#i-reload"/></svg><span>Reload</span></button>
-      <button class="btn" id="btn-login" type="button"><svg class="ico" aria-hidden="true"><use href="#i-login"/></svg><span>Log in</span></button>
-      <button class="btn" id="btn-games" type="button"><svg class="ico" aria-hidden="true"><use href="#i-games"/></svg><span>Games</span></button>
-      <button class="btn" id="btn-settings" type="button"><svg class="ico" aria-hidden="true"><use href="#i-settings"/></svg><span>Settings</span></button>
+      <button class="btn" id="btn-reload" type="button"><svg class="ico" aria-hidden="true"><use href="#i-reload"/></svg><span data-i18n="btn.reload">Reload</span></button>
+      <button class="btn" id="btn-login" type="button"><svg class="ico" aria-hidden="true"><use href="#i-login"/></svg><span data-i18n="btn.login">Log in</span></button>
+      <button class="btn" id="btn-games" type="button"><svg class="ico" aria-hidden="true"><use href="#i-games"/></svg><span data-i18n="btn.games">Games</span></button>
+      <button class="btn" id="btn-settings" type="button"><svg class="ico" aria-hidden="true"><use href="#i-settings"/></svg><span data-i18n="btn.settings">Settings</span></button>
+      <!-- repo / version info, under the Settings button -->
+      <div class="repo-info" id="repo-info">
+        <a id="repo-link" class="repo-link" href="#" target="_blank" rel="noopener noreferrer"
+           data-i18n="footer.repo">Source &amp; docs</a>
+        <span class="repo-ver" id="repo-ver"></span>
+      </div>
     </section>
 
     <!-- channels -->
     <section class="panel channels" aria-labelledby="ch-h">
-      <h2 id="ch-h" class="panel-title">Channels</h2>
+      <h2 id="ch-h" class="panel-title" data-i18n="panel.channels">Channels</h2>
       <div class="table-wrap">
         <table>
-          <thead><tr><th></th><th>Channel</th><th>Game</th><th>Status</th><th class="num">Viewers</th><th>Switch</th></tr></thead>
-          <tbody id="channels-body"><tr><td colspan="6" class="empty">No channels yet…</td></tr></tbody>
+          <thead><tr><th></th><th data-i18n="col.channel">Channel</th><th data-i18n="col.game">Game</th><th data-i18n="col.status">Status</th><th class="num" data-i18n="col.viewers">Viewers</th><th data-i18n="col.actions">Actions</th></tr></thead>
+          <tbody id="channels-body"><tr><td colspan="6" class="empty" data-i18n="channels.empty">No channels yet…</td></tr></tbody>
         </table>
       </div>
     </section>
 
     <!-- campaigns -->
     <section class="panel campaigns" aria-labelledby="cp-h">
-      <h2 id="cp-h" class="panel-title">Campaigns</h2>
-      <div class="cards" id="campaigns-cards"><p class="empty">Inventory empty…</p></div>
+      <h2 id="cp-h" class="panel-title" data-i18n="panel.campaigns">Campaigns</h2>
+      <div class="cards" id="campaigns-cards"><p class="empty" data-i18n="campaigns.empty">Inventory empty…</p></div>
     </section>
 
     <!-- console readout -->
     <section class="panel console" aria-labelledby="log-h">
-      <h2 id="log-h" class="panel-title">Console</h2>
+      <h2 id="log-h" class="panel-title" data-i18n="panel.console">Console</h2>
       <div class="screen" id="log" role="log" aria-live="polite" tabindex="0"></div>
     </section>
   </main>
@@ -105,6 +111,6 @@
   <!-- modal host (hidden by default via .modal-root; JS toggles .open) -->
   <div id="modal-root" class="modal-root"></div>
 
-  <script src="/static/app.js?v=9"></script>
+  <script src="/static/app.js?v=11"></script>
 </body>
 </html>

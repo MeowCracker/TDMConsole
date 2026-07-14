@@ -55,6 +55,85 @@ function setAccent(hex) {
 // apply saved theme immediately (before first paint of dynamic content)
 applyAccent(getAccent());
 
+/* ---- i18n: strings fetched from the server, language saved locally ------ */
+const LANG_KEY = "tdm-lang";
+let STR = {};                 // current { key: text } catalogue
+let LANGS = [];               // [{code, name}] from the server
+let META = { version: "?", repo: "" };
+
+function t(key, fallback) {
+  return (STR && STR[key]) || fallback || key;
+}
+function getLang() {
+  return localStorage.getItem(LANG_KEY) || "";   // "" = auto-detect
+}
+// Pick the best server language for the browser, unless the user chose one.
+function pickLang() {
+  const saved = getLang();
+  if (saved) return saved;
+  const codes = LANGS.map((l) => l.code);
+  // upstream file stems are native names (简体中文, 日本語, …) and english_name
+  // is exposed as .name; match navigator languages against a small alias table.
+  const nav = (navigator.languages || [navigator.language || "en"]).map((s) => s.toLowerCase());
+  const ALIAS = {
+    "zh-cn": "简体中文", "zh-sg": "简体中文", "zh-hans": "简体中文", "zh": "简体中文",
+    "zh-tw": "繁體中文", "zh-hk": "繁體中文", "zh-hant": "繁體中文",
+    "ja": "日本語", "de": "Deutsch", "fr": "Français", "es": "Español",
+    "it": "Italiano", "pt": "Português", "pt-br": "Português (Brasil)",
+    "ru": "Русский", "tr": "Türkçe", "pl": "Polski", "nl": "Nederlandse",
+    "cs": "Čeština", "da": "Dansk", "hu": "Magyar", "no": "Norsk",
+    "ro": "Română", "uk": "Українська", "ar": "العربية", "id": "Indonesian",
+  };
+  for (const n of nav) {
+    if (codes.includes(ALIAS[n])) return ALIAS[n];
+    const base = n.split("-")[0];
+    if (codes.includes(ALIAS[base])) return ALIAS[base];
+  }
+  return "English";
+}
+async function loadLang(code) {
+  try {
+    const r = await fetch(`/i18n/${encodeURIComponent(code)}`);
+    if (r.ok) STR = await r.json();
+  } catch { /* keep whatever we had */ }
+}
+async function setLang(code) {
+  localStorage.setItem(LANG_KEY, code);
+  await loadLang(code);
+  applyStaticI18n();
+  if (state) render(state);           // re-render dynamic content in new language
+}
+// Translate the static markup: any [data-i18n] gets textContent, any
+// [data-i18n-attr="attr:key,attr:key"] gets those attributes set.
+function applyStaticI18n() {
+  document.documentElement.lang = (getLang() || pickLang());
+  document.querySelectorAll("[data-i18n]").forEach((n) => {
+    n.textContent = t(n.getAttribute("data-i18n"));
+  });
+  document.querySelectorAll("[data-i18n-attr]").forEach((n) => {
+    n.getAttribute("data-i18n-attr").split(",").forEach((pair) => {
+      const [attr, key] = pair.split(":");
+      if (attr && key) n.setAttribute(attr.trim(), t(key.trim()));
+    });
+  });
+  document.title = "TDMConsole · " + t("app.tagline");
+  // repo / version footer under the Settings button
+  const link = $("repo-link");
+  if (link && META.repo) link.href = META.repo;
+  const ver = $("repo-ver");
+  if (ver) ver.textContent = META.version ? `${t("footer.version")} ${META.version}` : "";
+}
+async function initMeta() {
+  try {
+    const r = await fetch("/meta");
+    if (r.ok) {
+      const m = await r.json();
+      META = { version: m.version, repo: m.repo };
+      LANGS = m.languages || [];
+    }
+  } catch { /* offline meta — non-fatal */ }
+}
+
 /* ---- WebSocket with auto-reconnect ------------------------------------- */
 function connect() {
   const proto = location.protocol === "https:" ? "wss" : "ws";
@@ -86,7 +165,7 @@ function send(text) {
 /* ---- rendering ---------------------------------------------------------- */
 function render(s) {
   // status + LED
-  $("status-text").textContent = s.status || "starting…";
+  $("status-text").textContent = s.status || t("status.starting", "starting…");
   const led = $("led");
   if (s.login && s.login.userId == null && s.login.available) led.dataset.state = "error";
   else if (s.watching && s.watching.channel) led.dataset.state = "watching";
@@ -95,7 +174,8 @@ function render(s) {
   // user plate
   const login = s.login || {};
   $("user-plate").textContent =
-    login.userId != null ? `user ${login.userId}` : (login.available ? "not logged in" : "—");
+    login.userId != null ? `user ${login.userId}`
+      : (login.available ? t("login.logged_out", "not logged in") : "—");
 
   // login strip
   const showLogin = login.available && login.userId == null;
@@ -104,11 +184,14 @@ function render(s) {
   // login control: swap to a ✓ Online badge once authorized
   const online = login.userId != null;
   const btnLogin = $("btn-login");
-  if (btnLogin._online !== online) {
+  const lang = getLang() || pickLang();
+  if (btnLogin._online !== online || btnLogin._lang !== lang) {
     btnLogin._online = online;
-    btnLogin.innerHTML = online
-      ? '<svg class="ico" aria-hidden="true"><use href="#i-online"></use></svg><span>Online</span>'
-      : '<svg class="ico" aria-hidden="true"><use href="#i-login"></use></svg><span>Log in</span>';
+    btnLogin._lang = lang;
+    const lbl = online ? t("btn.online", "Online") : t("btn.login", "Log in");
+    const sym = online ? "i-online" : "i-login";
+    btnLogin.innerHTML =
+      `<svg class="ico" aria-hidden="true"><use href="#${sym}"></use></svg><span>${lbl}</span>`;
     btnLogin.classList.toggle("btn-online", online);
   }
   // enabled only when there's something to do (a pending login)
@@ -119,15 +202,16 @@ function render(s) {
   $("cur-channel").textContent = s.watching.channel || "—";
 
   // drop gauge
-  $("drop-rewards").textContent = s.drop.rewards || "No active drop";
+  $("drop-rewards").textContent = s.drop.rewards || t("mining.no_drop", "No active drop");
   $("drop-remaining").textContent = s.drop.rewards ? s.drop.remaining : "—";
   meter("drop", s.drop.progress);
   // campaign gauge
-  $("camp-name").textContent = s.campaign.name || "Campaign";
+  $("camp-name").textContent = s.campaign.name || t("progress.campaign", "Campaign");
   $("camp-remaining").textContent = s.campaign.name ? s.campaign.remaining : "—";
   meter("camp", s.campaign.progress);
   $("camp-drops").textContent = s.campaign.total
-    ? `${s.campaign.claimed} / ${s.campaign.total} drops claimed`
+    ? t("mining.drops_claimed", "{claimed} / {total} drops claimed")
+        .replace("{claimed}", s.campaign.claimed).replace("{total}", s.campaign.total)
     : "";
 
   renderWs(s.websockets);
@@ -167,7 +251,7 @@ function renderChannels(chs) {
   body.replaceChildren();
   if (!chs || !chs.length) {
     const tr = el("tr");
-    tr.append(Object.assign(el("td", "empty", "No channels yet…"), { colSpan: 6 }));
+    tr.append(Object.assign(el("td", "empty", t("channels.empty", "No channels yet…")), { colSpan: 6 }));
     body.append(tr);
     return;
   }
@@ -178,7 +262,7 @@ function renderChannels(chs) {
     // status column: ▶ = now watching, 🔒 = locked to this channel
     const flag = el("td", "ch-flag");
     flag.textContent = c.watching ? "▶" : c.locked ? "🔒" : "";
-    flag.title = c.watching ? "Now watching" : c.locked ? "Locked to this channel" : "";
+    flag.title = c.watching ? t("flag.watching", "Now watching") : c.locked ? t("flag.locked", "Locked to this channel") : "";
     tr.append(flag);
     tr.append(el("td", null, c.name));
     tr.append(el("td", null, c.game || "—"));
@@ -194,17 +278,17 @@ function renderChannels(chs) {
     if (c.locked) {
       const unlock = el("button", "row-btn unlock");
       unlock.innerHTML = "✕";
-      unlock.title = "Unlock — resume automatic channel selection";
-      unlock.setAttribute("aria-label", "Unlock " + c.name);
+      unlock.title = t("action.unlock", "Unlock — resume automatic channel selection");
+      unlock.setAttribute("aria-label", t("action.unlock"));
       unlock.onclick = (e) => { e.stopPropagation(); send("/unpin"); };
       actCell.append(unlock);
     } else {
       const sw = el("button", "row-btn switch");
       sw.innerHTML = '<svg class="ico" aria-hidden="true"><use href="#i-switch"/></svg>';
       sw.title = c.online
-        ? "Switch to & lock this channel"
-        : "Channel is offline — can't switch right now";
-      sw.setAttribute("aria-label", "Switch to " + c.name);
+        ? t("action.switch", "Switch to & lock this channel")
+        : t("action.switch_offline", "Channel is offline — can't switch right now");
+      sw.setAttribute("aria-label", t("action.switch"));
       sw.disabled = !c.online;
       sw.onclick = (e) => { e.stopPropagation(); send(`/pin ${c.name}`); };
       actCell.append(sw);
@@ -217,13 +301,13 @@ function renderChannels(chs) {
 function renderCampaigns(cps) {
   const box = $("campaigns-cards");
   box.replaceChildren();
-  if (!cps || !cps.length) { box.append(el("p", "empty", "Inventory empty…")); return; }
+  if (!cps || !cps.length) { box.append(el("p", "empty", t("campaigns.empty", "Inventory empty…"))); return; }
   cps.forEach((c) => {
     const card = el("div", "card");
     const top = el("div", "card-top");
     top.append(el("span", "card-game", c.game));
     const tagCls = c.active ? "active" : c.upcoming ? "upcoming" : "expired";
-    top.append(el("span", "tag " + tagCls, tagCls));
+    top.append(el("span", "tag " + tagCls, t("tag." + tagCls, tagCls)));
     card.append(top);
     card.append(el("div", "card-name", `${c.name} · ${c.claimed}/${c.total}`));
     const m = el("div", "card-meter");
@@ -306,19 +390,18 @@ function ghostBtn(text, fn) { const b = el("button", "btn", text); b.onclick = f
 /* login modal */
 function openLogin() {
   const node = el("div");
-  node.append(heading("Twitch login"));
-  node.append(el("p", null, "1. Open this URL in a browser (any device):"));
+  node.append(heading(t("login.title", "Twitch login")));
+  node.append(el("p", null, t("login.instructions", "Open this page and enter the code:")));
   const url = el("p", "login-url");
   url.id = "m-login-url";
   node.append(url);
-  node.append(el("p", null, "2. Enter this code:"));
   const code = el("div", "code-ticket");
   code.id = "m-login-code";
   node.append(code);
-  node.append(el("p", null, "Mining starts automatically once you authorize."));
+  node.append(el("p", null, t("login.waiting", "Waiting for authorization…")));
   node.append(actions(
-    ghostBtn("Open URL", () => state && state.login && window.open(state.login.url, "_blank")),
-    primaryBtn("Close", closeModal),
+    ghostBtn(t("login.open_url", "Open page"), () => state && state.login && window.open(state.login.url, "_blank")),
+    primaryBtn(t("settings.done", "Close"), closeModal),
   ));
   openModal("login", node);
   refreshLoginModal();
@@ -333,10 +416,10 @@ function refreshLoginModal() {
 /* games modal */
 function openGames() {
   const node = el("div");
-  node.append(heading("Games — priority & exclusions"));
+  node.append(heading(t("games.title", "Games — priority & exclusions")));
 
   const prio = el("div");
-  prio.append(el("label", null, "Priority (top = highest)"));
+  prio.append(el("label", null, t("games.priority", "Priority (top = highest)")));
   const plist = el("div", "list-editor");
   plist.id = "games-priority-list";
   prio.append(plist);
@@ -344,26 +427,26 @@ function openGames() {
   // 0.5s state snapshots that re-render the lists.
   const add = el("div", "add-row");
   const inp = el("input");
-  inp.placeholder = "Add a game to priority…";
-  inp.setAttribute("aria-label", "Add priority game");
+  inp.placeholder = t("games.add_priority", "Add a game to priority…");
+  inp.setAttribute("aria-label", t("games.add_priority", "Add a game to priority…"));
   const doAdd = () => {
     const v = inp.value.trim();
     if (v) { send(`/priority add ${v}`); inp.value = ""; inp.focus(); }
   };
   inp.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); doAdd(); } };
-  add.append(inp, primaryBtn("Add", doAdd));
+  add.append(inp, primaryBtn(t("games.add", "Add"), doAdd));
   prio.append(add);
   node.append(prio);
 
   const exc = el("div");
   exc.style.marginTop = "16px";
-  exc.append(el("label", null, "Excluded"));
+  exc.append(el("label", null, t("games.excluded", "Excluded")));
   const elist = el("div", "list-editor");
   elist.id = "games-exclude-list";
   exc.append(elist);
   node.append(exc);
 
-  node.append(actions(primaryBtn("Done", closeModal)));
+  node.append(actions(primaryBtn(t("settings.done", "Done"), closeModal)));
   openModal("games", node);
   gamesSig = "";        // force a first render
   refreshGamesModal();
@@ -387,10 +470,10 @@ function refreshGamesModal() {
     row.append(ghostBtn("↑", () => send(`/priority up ${g}`)));
     row.append(ghostBtn("↓", () => send(`/priority down ${g}`)));
     row.append(ghostBtn("✕", () => send(`/priority remove ${g}`)));
-    row.append(ghostBtn("exclude", () => send(`/exclude add ${g}`)));
+    row.append(ghostBtn(t("games.exclude_btn", "exclude"), () => send(`/exclude add ${g}`)));
     plist.append(row);
   });
-  if (!s.priority.length) plist.append(el("p", "empty", "No priority games"));
+  if (!s.priority.length) plist.append(el("p", "empty", t("games.none_priority", "No priority games")));
   elist.replaceChildren();
   s.exclude.forEach((g) => {
     const row = el("div", "list-row");
@@ -398,17 +481,17 @@ function refreshGamesModal() {
     row.append(ghostBtn("✕", () => send(`/exclude remove ${g}`)));
     elist.append(row);
   });
-  if (!s.exclude.length) elist.append(el("p", "empty", "No excluded games"));
+  if (!s.exclude.length) elist.append(el("p", "empty", t("games.none_excluded", "No excluded games")));
 }
 
 /* settings modal */
 function openSettings() {
   const s = state.settings;
   const node = el("div");
-  node.append(heading("Settings"));
+  node.append(heading(t("settings.title", "Settings")));
 
   const proxyField = el("div", "field");
-  proxyField.append(el("label", null, "Proxy URL"));
+  proxyField.append(el("label", null, t("settings.proxy", "Proxy URL")));
   const proxy = el("input");
   proxy.value = s.proxy || "";
   proxy.placeholder = "http://127.0.0.1:7890 (blank = none)";
@@ -416,21 +499,38 @@ function openSettings() {
   node.append(proxyField);
 
   const modeField = el("div", "field");
-  modeField.append(el("label", null, "Priority mode"));
+  modeField.append(el("label", null, t("settings.priority_mode", "Priority mode")));
   const modeSel = el("select");
-  [["PRIORITY_ONLY", "Priority list only"], ["ENDING_SOONEST", "Ending soonest first"], ["LOW_AVBL_FIRST", "Low availability first"]]
-    .forEach(([v, t]) => { const o = el("option", null, t); o.value = v; if (v === s.priorityMode) o.selected = true; modeSel.append(o); });
+  [["PRIORITY_ONLY", t("mode.priority_only", "Priority list only")],
+   ["ENDING_SOONEST", t("mode.ending_soonest", "Ending soonest first")],
+   ["LOW_AVBL_FIRST", t("mode.low_availability", "Low availability first")]]
+    .forEach(([v, label]) => { const o = el("option", null, label); o.value = v; if (v === s.priorityMode) o.selected = true; modeSel.append(o); });
   modeField.append(modeSel);
   node.append(modeField);
 
+  // ---- language picker (applies live, saved locally) ----
+  const langField = el("div", "field");
+  langField.append(el("label", null, t("settings.language", "Language")));
+  const langSel = el("select");
+  const curLang = getLang() || pickLang();
+  LANGS.forEach((l) => {
+    const o = el("option", null, l.name);
+    o.value = l.code;
+    if (l.code === curLang) o.selected = true;
+    langSel.append(o);
+  });
+  langSel.onchange = () => { setLang(langSel.value); };
+  langField.append(langSel);
+  node.append(langField);
+
   // ---- theme accent picker (applies live, saved locally) ----
   const themeField = el("div", "field");
-  themeField.append(el("label", null, "Theme colour"));
+  themeField.append(el("label", null, t("settings.theme", "Theme colour")));
   const swatches = el("div", "swatches");
   const custom = el("input");
   custom.type = "color";
   custom.className = "swatch-custom";
-  custom.setAttribute("aria-label", "Custom theme colour");
+  custom.setAttribute("aria-label", t("settings.theme_custom", "Custom theme colour"));
   const current = getAccent();
   custom.value = current;
   PRESET_THEMES.forEach(([name, hex]) => {
@@ -458,11 +558,11 @@ function openSettings() {
   themeField.append(swatches);
   node.append(themeField);
 
-  node.append(el("p", "login-url", "Theme applies instantly and is saved in this browser. Priority mode changes apply on the next reload."));
+  node.append(el("p", "login-url", t("settings.note")));
 
   node.append(actions(
-    ghostBtn("Cancel", closeModal),
-    primaryBtn("Save", () => {
+    ghostBtn(t("settings.cancel", "Cancel"), closeModal),
+    primaryBtn(t("settings.save", "Save"), () => {
       // Only send a command when the field actually changed, so opening
       // Settings (e.g. just to pick a theme) never clears the proxy or
       // triggers a needless restart.
@@ -487,4 +587,16 @@ $("login-cta").onclick = () => send("/login");
 $("btn-games").onclick = () => { if (state) openGames(); };
 $("btn-settings").onclick = () => { if (state) openSettings(); };
 
-connect();
+/* ---- startup: load languages + strings before first paint, then connect - */
+async function start() {
+  try {
+    await initMeta();                 // /meta → languages, repo, version
+    await loadLang(pickLang());       // /i18n/<lang> → current catalogue
+    applyStaticI18n();                // translate the static shell
+  } catch (e) {
+    // i18n is best-effort; the UI still works in English if it fails.
+  }
+  connect();
+}
+
+start();
