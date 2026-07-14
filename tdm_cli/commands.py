@@ -20,6 +20,7 @@ COMMANDS: dict[str, str] = {
     "/campaigns": "list inventory campaigns",
     "/games": "show priority & excluded games",
     "/priority": "/priority add|remove|up|down <game> — edit the priority list",
+    "/priority-mode": "/priority-mode priority_only|ending_soonest|low_avbl_first",
     "/exclude": "/exclude add|remove <game> — edit the exclusion list",
     "/pin": "/pin <channel> — pin & switch to a channel",
     "/unpin": "resume automatic channel selection",
@@ -153,6 +154,20 @@ class CommandProcessor:
         settings.save()
         self._m._twitch.change_state(self._state_enum().GAMES_UPDATE)
         self._cmd_games([])
+
+    def _cmd_priority_mode(self, args: list[str]) -> None:
+        from constants import PriorityMode
+
+        settings = self._m._twitch.settings
+        choices = {m.name.lower(): m for m in PriorityMode}
+        if not args or args[0].lower() not in choices:
+            self._out(f"Usage: /priority-mode {'|'.join(choices)}", "warn")
+            self._out(f"Current: {settings.priority_mode.name}", "dim")
+            return
+        settings.priority_mode = choices[args[0].lower()]
+        settings.save()
+        self._m._twitch.change_state(self._state_enum().GAMES_UPDATE)
+        self._out(f"Priority mode: {settings.priority_mode.name}", "info")
 
     def _cmd_exclude(self, args: list[str]) -> None:
         settings = self._m._twitch.settings

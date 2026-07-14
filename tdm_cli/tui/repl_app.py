@@ -2,7 +2,7 @@
 
 Layout mirrors Claude Code's own CLI:
 
-    ╭─── TDM-CLI v16 ──────────────────────────────╮
+    ╭─── TDMConsole v16 ───────────────────────────╮
     │   ⛏ logo / welcome   │ Getting started tips  │
     ╰──────────────────────────────────────────────╯
 
@@ -99,7 +99,7 @@ class CommandInput(Input):
 
 
 class ReplApp(App[None]):
-    TITLE = "TDM-CLI"
+    TITLE = "TDMConsole"
 
     BINDINGS = [
         Binding("ctrl+c", "quit_miner", "Quit", show=False),
@@ -174,7 +174,7 @@ class ReplApp(App[None]):
         grid.add_column(justify="center", vertical="middle")
         grid.add_column()
         logo = Text()
-        logo.append("⛏ TDM-CLI\n\n", style="bold cyan")
+        logo.append("⛏ TDMConsole\n\n", style="bold cyan")
         logo.append("Welcome!\n", style="bold")
         logo.append("Twitch Drops Miner", style="dim")
         tips = Text("Getting started\n", style="bold")
@@ -188,7 +188,7 @@ class ReplApp(App[None]):
         self.query_one("#output", RichLog).write(
             Panel(
                 grid,
-                title=f"TDM-CLI v{__version__}",
+                title=f"TDMConsole v{__version__}",
                 title_align="left",
                 box=ROUNDED,
                 border_style="cyan",

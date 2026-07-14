@@ -1,4 +1,4 @@
-"""TDM-CLI — a headless / terminal front-end for DevilXD's TwitchDropsMiner.
+"""TDMConsole — a headless / terminal front-end for DevilXD's TwitchDropsMiner.
 
 All code in this package lives *outside* the upstream ``TwitchDropsMiner`` git
 submodule. The submodule is used pristine; we swap its tkinter ``GUIManager``

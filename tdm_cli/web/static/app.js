@@ -1,0 +1,490 @@
+/* TDMConsole WebUI client — vanilla JS, no build step.
+   Opens a WebSocket, renders MinerState snapshots, sends /commands. */
+"use strict";
+
+const $ = (id) => document.getElementById(id);
+const el = (tag, cls, text) => {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+};
+
+let ws = null;
+let seenLog = 0;          // highest log seq rendered (dedup)
+let state = null;         // latest snapshot
+let modalKind = null;     // "login" | "games" | "settings" | null
+
+/* ---- theming: accent colour is user-overridable, persisted locally ------ */
+const THEME_KEY = "tdm-accent";
+const PRESET_THEMES = [
+  ["Twitch",  "#9146FF"],
+  ["Ocean",   "#1E9BF0"],
+  ["Emerald", "#12C27A"],
+  ["Sunset",  "#FF7A1A"],
+  ["Rose",    "#F0407F"],
+  ["Gold",    "#E0A73C"],
+];
+function hexToRgb(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec((hex || "").trim());
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function rgbToHex([r, g, b]) {
+  return "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
+}
+function applyAccent(hex) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return;
+  const root = document.documentElement.style;
+  root.setProperty("--accent-r", rgb[0]);
+  root.setProperty("--accent-g", rgb[1]);
+  root.setProperty("--accent-b", rgb[2]);
+}
+function getAccent() {
+  return localStorage.getItem(THEME_KEY) || "#9146FF";
+}
+function setAccent(hex) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return;
+  const norm = rgbToHex(rgb);
+  localStorage.setItem(THEME_KEY, norm);
+  applyAccent(norm);
+}
+// apply saved theme immediately (before first paint of dynamic content)
+applyAccent(getAccent());
+
+/* ---- WebSocket with auto-reconnect ------------------------------------- */
+function connect() {
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  ws = new WebSocket(`${proto}://${location.host}/ws`);
+  ws.onopen = () => setConn(true);
+  ws.onclose = () => { setConn(false); setTimeout(connect, 1500); };
+  ws.onerror = () => ws.close();
+  ws.onmessage = (ev) => {
+    let msg;
+    try { msg = JSON.parse(ev.data); } catch { return; }
+    if (msg.type === "state") { state = msg.data; render(state); }
+    else if (msg.type === "log") { appendLog(msg.lines); }
+  };
+}
+
+function setConn(ok) {
+  if (!ok) {
+    $("status-text").textContent = "disconnected — reconnecting…";
+    $("led").dataset.state = "offline";
+  }
+}
+
+function send(text) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: "command", text }));
+  }
+}
+
+/* ---- rendering ---------------------------------------------------------- */
+function render(s) {
+  // status + LED
+  $("status-text").textContent = s.status || "starting…";
+  const led = $("led");
+  if (s.login && s.login.userId == null && s.login.available) led.dataset.state = "error";
+  else if (s.watching && s.watching.channel) led.dataset.state = "watching";
+  else led.dataset.state = "idle";
+
+  // user plate
+  const login = s.login || {};
+  $("user-plate").textContent =
+    login.userId != null ? `user ${login.userId}` : (login.available ? "not logged in" : "—");
+
+  // login strip
+  const showLogin = login.available && login.userId == null;
+  $("login-strip").hidden = !showLogin;
+
+  // login control: swap to a ✓ Online badge once authorized
+  const online = login.userId != null;
+  const btnLogin = $("btn-login");
+  if (btnLogin._online !== online) {
+    btnLogin._online = online;
+    btnLogin.innerHTML = online
+      ? '<svg class="ico" aria-hidden="true"><use href="#i-online"></use></svg><span>Online</span>'
+      : '<svg class="ico" aria-hidden="true"><use href="#i-login"></use></svg><span>Log in</span>';
+    btnLogin.classList.toggle("btn-online", online);
+  }
+  // enabled only when there's something to do (a pending login)
+  btnLogin.disabled = !online && !login.available;
+
+  // now mining
+  $("cur-game").textContent = s.watching.game || s.campaign.game || "—";
+  $("cur-channel").textContent = s.watching.channel || "—";
+
+  // drop gauge
+  $("drop-rewards").textContent = s.drop.rewards || "No active drop";
+  $("drop-remaining").textContent = s.drop.rewards ? s.drop.remaining : "—";
+  meter("drop", s.drop.progress);
+  // campaign gauge
+  $("camp-name").textContent = s.campaign.name || "Campaign";
+  $("camp-remaining").textContent = s.campaign.name ? s.campaign.remaining : "—";
+  meter("camp", s.campaign.progress);
+  $("camp-drops").textContent = s.campaign.total
+    ? `${s.campaign.claimed} / ${s.campaign.total} drops claimed`
+    : "";
+
+  renderWs(s.websockets);
+  renderChannels(s.channels);
+  renderCampaigns(s.campaigns);
+
+  // live-refresh an open modal that mirrors state
+  if (modalKind === "login") refreshLoginModal();
+  else if (modalKind === "games") refreshGamesModal();
+  // auto-open the login modal when the user asked (login.prompt) and it isn't up
+  if (login.prompt && modalKind !== "login") openLogin();
+  if (!login.prompt && modalKind === "login") closeModal();
+}
+
+function meter(prefix, frac) {
+  const pct = Math.round(Math.max(0, Math.min(1, frac || 0)) * 100);
+  $(`${prefix}-fill`).style.width = pct + "%";
+  $(`${prefix}-pct`).textContent = pct + "%";
+  $(`${prefix}-meter`).setAttribute("aria-valuenow", String(pct));
+}
+
+function renderWs(list) {
+  const strip = $("ws-strip");
+  strip.replaceChildren();
+  (list || []).forEach((w) => {
+    const dot = el("span", "ws-dot");
+    const led = el("span", "led");
+    const connected = /connect|open|ONLINE|online/i.test(w.status) && !/dis/i.test(w.status);
+    led.dataset.state = connected ? "watching" : "idle";
+    dot.append(led, el("span", null, `#${w.idx + 1} ${w.status} · ${w.topics}t`));
+    strip.append(dot);
+  });
+}
+
+function renderChannels(chs) {
+  const body = $("channels-body");
+  body.replaceChildren();
+  if (!chs || !chs.length) {
+    const tr = el("tr");
+    tr.append(Object.assign(el("td", "empty", "No channels yet…"), { colSpan: 6 }));
+    body.append(tr);
+    return;
+  }
+  chs.forEach((c) => {
+    const tr = el("tr");
+    if (c.watching) tr.classList.add("watching");
+    else if (c.locked) tr.classList.add("locked");
+    // status column: ▶ = now watching, 🔒 = locked to this channel
+    const flag = el("td", "ch-flag");
+    flag.textContent = c.watching ? "▶" : c.locked ? "🔒" : "";
+    flag.title = c.watching ? "Now watching" : c.locked ? "Locked to this channel" : "";
+    tr.append(flag);
+    tr.append(el("td", null, c.name));
+    tr.append(el("td", null, c.game || "—"));
+    const st = el("td");
+    const pill = el("span",
+      "pill " + (c.online ? "online" : c.pending ? "pending" : "offline"),
+      c.online ? "online" : c.pending ? "pending" : "offline");
+    st.append(pill);
+    tr.append(st);
+    tr.append(el("td", "num", c.viewers == null ? "—" : String(c.viewers)));
+    // action column: switch-to (arrows) when not locked, unlock (✕) when locked
+    const actCell = el("td", "ch-act");
+    if (c.locked) {
+      const unlock = el("button", "row-btn unlock");
+      unlock.innerHTML = "✕";
+      unlock.title = "Unlock — resume automatic channel selection";
+      unlock.setAttribute("aria-label", "Unlock " + c.name);
+      unlock.onclick = (e) => { e.stopPropagation(); send("/unpin"); };
+      actCell.append(unlock);
+    } else {
+      const sw = el("button", "row-btn switch");
+      sw.innerHTML = '<svg class="ico" aria-hidden="true"><use href="#i-switch"/></svg>';
+      sw.title = c.online
+        ? "Switch to & lock this channel"
+        : "Channel is offline — can't switch right now";
+      sw.setAttribute("aria-label", "Switch to " + c.name);
+      sw.disabled = !c.online;
+      sw.onclick = (e) => { e.stopPropagation(); send(`/pin ${c.name}`); };
+      actCell.append(sw);
+    }
+    tr.append(actCell);
+    body.append(tr);
+  });
+}
+
+function renderCampaigns(cps) {
+  const box = $("campaigns-cards");
+  box.replaceChildren();
+  if (!cps || !cps.length) { box.append(el("p", "empty", "Inventory empty…")); return; }
+  cps.forEach((c) => {
+    const card = el("div", "card");
+    const top = el("div", "card-top");
+    top.append(el("span", "card-game", c.game));
+    const tagCls = c.active ? "active" : c.upcoming ? "upcoming" : "expired";
+    top.append(el("span", "tag " + tagCls, tagCls));
+    card.append(top);
+    card.append(el("div", "card-name", `${c.name} · ${c.claimed}/${c.total}`));
+    const m = el("div", "card-meter");
+    const fill = el("div");
+    fill.style.width = Math.round((c.progress || 0) * 100) + "%";
+    m.append(fill);
+    card.append(m);
+    box.append(card);
+  });
+}
+
+function appendLog(lines) {
+  const screen = $("log");
+  const atBottom = screen.scrollHeight - screen.scrollTop - screen.clientHeight < 40;
+  (lines || []).forEach((e) => {
+    if (e.seq <= seenLog) return;
+    seenLog = e.seq;
+    const line = el("div", "line");
+    line.append(el("span", "stamp", e.stamp));
+    const span = el("span", e.style ? "s-" + e.style : null, e.text);
+    line.append(span);
+    screen.append(line);
+  });
+  while (screen.childElementCount > 500) screen.removeChild(screen.firstChild);
+  if (atBottom) screen.scrollTop = screen.scrollHeight;
+}
+
+/* ---- modals ------------------------------------------------------------- */
+function sendAction(name, extra) {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(Object.assign({ type: "action", name }, extra || {})));
+  }
+}
+
+let lastFocus = null;
+function openModal(kind, node) {
+  modalKind = kind;
+  lastFocus = document.activeElement;
+  const root = $("modal-root");
+  const wrap = el("div", "modal");
+  wrap.setAttribute("role", "dialog");
+  wrap.setAttribute("aria-modal", "true");
+  wrap.append(node);
+  root.replaceChildren(wrap);
+  root.classList.add("open");
+  root.onclick = (e) => { if (e.target === root) closeModal(); };
+  // Keyboard-first: contain Tab within the dialog (focus trap).
+  wrap.addEventListener("keydown", (e) => {
+    if (e.key !== "Tab") return;
+    const items = wrap.querySelectorAll(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (!items.length) return;
+    const first = items[0], last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+  const focusable = wrap.querySelector("input, select, button");
+  if (focusable) focusable.focus();
+}
+function closeModal() {
+  const wasLogin = modalKind === "login";
+  modalKind = null;
+  const root = $("modal-root");
+  root.classList.remove("open");
+  root.replaceChildren();
+  if (lastFocus && lastFocus.focus) lastFocus.focus();
+  // Tell the server to stop asking to show the login prompt (poll continues).
+  if (wasLogin) sendAction("login-hide");
+}
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && modalKind) { e.preventDefault(); closeModal(); }
+});
+
+function heading(text) { return el("h3", null, text); }
+function actions(...btns) { const a = el("div", "modal-actions"); a.append(...btns); return a; }
+function primaryBtn(text, fn) { const b = el("button", "btn btn-primary", text); b.onclick = fn; return b; }
+function ghostBtn(text, fn) { const b = el("button", "btn", text); b.onclick = fn; return b; }
+
+/* login modal */
+function openLogin() {
+  const node = el("div");
+  node.append(heading("Twitch login"));
+  node.append(el("p", null, "1. Open this URL in a browser (any device):"));
+  const url = el("p", "login-url");
+  url.id = "m-login-url";
+  node.append(url);
+  node.append(el("p", null, "2. Enter this code:"));
+  const code = el("div", "code-ticket");
+  code.id = "m-login-code";
+  node.append(code);
+  node.append(el("p", null, "Mining starts automatically once you authorize."));
+  node.append(actions(
+    ghostBtn("Open URL", () => state && state.login && window.open(state.login.url, "_blank")),
+    primaryBtn("Close", closeModal),
+  ));
+  openModal("login", node);
+  refreshLoginModal();
+}
+function refreshLoginModal() {
+  if (modalKind !== "login" || !state) return;
+  const u = $("m-login-url"), c = $("m-login-code");
+  if (u) u.textContent = state.login.url || "—";
+  if (c) c.textContent = state.login.code || "—";
+}
+
+/* games modal */
+function openGames() {
+  const node = el("div");
+  node.append(heading("Games — priority & exclusions"));
+
+  const prio = el("div");
+  prio.append(el("label", null, "Priority (top = highest)"));
+  const plist = el("div", "list-editor");
+  plist.id = "games-priority-list";
+  prio.append(plist);
+  // The add-row lives OUTSIDE the refreshed list so typing/focus survive the
+  // 0.5s state snapshots that re-render the lists.
+  const add = el("div", "add-row");
+  const inp = el("input");
+  inp.placeholder = "Add a game to priority…";
+  inp.setAttribute("aria-label", "Add priority game");
+  const doAdd = () => {
+    const v = inp.value.trim();
+    if (v) { send(`/priority add ${v}`); inp.value = ""; inp.focus(); }
+  };
+  inp.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); doAdd(); } };
+  add.append(inp, primaryBtn("Add", doAdd));
+  prio.append(add);
+  node.append(prio);
+
+  const exc = el("div");
+  exc.style.marginTop = "16px";
+  exc.append(el("label", null, "Excluded"));
+  const elist = el("div", "list-editor");
+  elist.id = "games-exclude-list";
+  exc.append(elist);
+  node.append(exc);
+
+  node.append(actions(primaryBtn("Done", closeModal)));
+  openModal("games", node);
+  gamesSig = "";        // force a first render
+  refreshGamesModal();
+}
+
+let gamesSig = "";
+function refreshGamesModal() {
+  const s = state && state.settings;
+  const plist = document.getElementById("games-priority-list");
+  const elist = document.getElementById("games-exclude-list");
+  if (!s || !plist || !elist) return;
+  // Only rebuild when the lists actually change — avoids replacing the
+  // interactive buttons every 0.5s snapshot (which could drop a click).
+  const sig = JSON.stringify([s.priority, s.exclude]);
+  if (sig === gamesSig) return;
+  gamesSig = sig;
+  plist.replaceChildren();
+  s.priority.forEach((g, i) => {
+    const row = el("div", "list-row");
+    row.append(el("span", "grow", `${i + 1}. ${g}`));
+    row.append(ghostBtn("↑", () => send(`/priority up ${g}`)));
+    row.append(ghostBtn("↓", () => send(`/priority down ${g}`)));
+    row.append(ghostBtn("✕", () => send(`/priority remove ${g}`)));
+    row.append(ghostBtn("exclude", () => send(`/exclude add ${g}`)));
+    plist.append(row);
+  });
+  if (!s.priority.length) plist.append(el("p", "empty", "No priority games"));
+  elist.replaceChildren();
+  s.exclude.forEach((g) => {
+    const row = el("div", "list-row");
+    row.append(el("span", "grow", g));
+    row.append(ghostBtn("✕", () => send(`/exclude remove ${g}`)));
+    elist.append(row);
+  });
+  if (!s.exclude.length) elist.append(el("p", "empty", "No excluded games"));
+}
+
+/* settings modal */
+function openSettings() {
+  const s = state.settings;
+  const node = el("div");
+  node.append(heading("Settings"));
+
+  const proxyField = el("div", "field");
+  proxyField.append(el("label", null, "Proxy URL"));
+  const proxy = el("input");
+  proxy.value = s.proxy || "";
+  proxy.placeholder = "http://127.0.0.1:7890 (blank = none)";
+  proxyField.append(proxy);
+  node.append(proxyField);
+
+  const modeField = el("div", "field");
+  modeField.append(el("label", null, "Priority mode"));
+  const modeSel = el("select");
+  [["PRIORITY_ONLY", "Priority list only"], ["ENDING_SOONEST", "Ending soonest first"], ["LOW_AVBL_FIRST", "Low availability first"]]
+    .forEach(([v, t]) => { const o = el("option", null, t); o.value = v; if (v === s.priorityMode) o.selected = true; modeSel.append(o); });
+  modeField.append(modeSel);
+  node.append(modeField);
+
+  // ---- theme accent picker (applies live, saved locally) ----
+  const themeField = el("div", "field");
+  themeField.append(el("label", null, "Theme colour"));
+  const swatches = el("div", "swatches");
+  const custom = el("input");
+  custom.type = "color";
+  custom.className = "swatch-custom";
+  custom.setAttribute("aria-label", "Custom theme colour");
+  const current = getAccent();
+  custom.value = current;
+  PRESET_THEMES.forEach(([name, hex]) => {
+    const b = el("button", "swatch");
+    b.type = "button";
+    b.title = name;
+    b.setAttribute("aria-label", `${name} theme`);
+    b.style.setProperty("--sw", hex);
+    if (hex.toLowerCase() === current.toLowerCase()) b.classList.add("active");
+    b.onclick = () => {
+      setAccent(hex);
+      custom.value = hex;
+      swatches.querySelectorAll(".swatch").forEach((s) => s.classList.remove("active"));
+      b.classList.add("active");
+    };
+    swatches.append(b);
+  });
+  // live preview while dragging; commit persists it
+  custom.oninput = () => {
+    applyAccent(custom.value);
+    swatches.querySelectorAll(".swatch").forEach((s) => s.classList.remove("active"));
+  };
+  custom.onchange = () => setAccent(custom.value);
+  swatches.append(custom);
+  themeField.append(swatches);
+  node.append(themeField);
+
+  node.append(el("p", "login-url", "Theme applies instantly and is saved in this browser. Priority mode changes apply on the next reload."));
+
+  node.append(actions(
+    ghostBtn("Cancel", closeModal),
+    primaryBtn("Save", () => {
+      // Only send a command when the field actually changed, so opening
+      // Settings (e.g. just to pick a theme) never clears the proxy or
+      // triggers a needless restart.
+      const p = proxy.value.trim();
+      const origProxy = (s.proxy || "").trim();
+      if (modeSel.value !== s.priorityMode) {
+        send(`/priority-mode ${modeSel.value.toLowerCase()}`);
+      }
+      if (p !== origProxy) {
+        send(`/proxy ${p || "clear"}`);
+      }
+      closeModal();
+    }),
+  ));
+  openModal("settings", node);
+}
+
+/* ---- wire up controls --------------------------------------------------- */
+$("btn-reload").onclick = () => send("/reload");
+$("btn-login").onclick = () => send("/login");
+$("login-cta").onclick = () => send("/login");
+$("btn-games").onclick = () => { if (state) openGames(); };
+$("btn-settings").onclick = () => { if (state) openSettings(); };
+
+connect();

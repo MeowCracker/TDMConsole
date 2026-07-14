@@ -1,0 +1,26 @@
+# Keep the Docker build context small and reproducible.
+.git
+**/.git
+.venv
+env
+__pycache__
+**/__pycache__
+*.pyc
+.claude
+.dockerignore
+Dockerfile
+*.zip
+*.bak
+
+# Local runtime state (never bake into the image)
+settings.json
+tdm-cli.json
+cookies.jar
+log.txt
+lock.file
+dump.dat
+cache/
+
+# Tests / docs not needed at runtime
+test_*.py
+README.md

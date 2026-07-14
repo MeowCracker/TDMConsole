@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-MODES = ("tui", "repl", "headless")
+MODES = ("tui", "repl", "web", "headless")
 DEFAULT_MODE = "tui"
 
 

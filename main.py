@@ -37,6 +37,8 @@ if __name__ == "__main__":
         _jar: str | None
         _no_tui: bool
         _mode: str | None
+        _host: str | None
+        _port: int | None
         check_contract: bool
 
         @property
@@ -92,9 +94,19 @@ if __name__ == "__main__":
         help="path of the cookie jar file (default: ./cookies.jar)",
     )
     parser.add_argument(
-        "--mode", dest="_mode", choices=("tui", "repl", "headless"), default=None,
+        "--mode", dest="_mode", choices=("tui", "repl", "web", "headless"), default=None,
         help="interface mode: tui (full-screen dashboard), repl (slash-command "
-             "prompt), headless (plain logs); default: saved preference, else tui",
+             "prompt), web (browser UI for Docker), headless (plain logs); "
+             "default: saved preference, else tui",
+    )
+    parser.add_argument(
+        "--host", dest="_host", metavar="ADDR", default=None,
+        help="web mode bind address (default: $TDM_WEB_HOST or 127.0.0.1; "
+             "use 0.0.0.0 in Docker)",
+    )
+    parser.add_argument(
+        "--port", dest="_port", metavar="PORT", type=int, default=None,
+        help="web mode port (default: $TDM_WEB_PORT or 8080)",
     )
     parser.add_argument(
         "--no-tui", dest="_no_tui", action="store_true",
@@ -209,8 +221,39 @@ if __name__ == "__main__":
         jar.update_cookies(cookie, client_url)
         jar.save(jar_path)
 
+    def _read_valid_cookie_bytes(jar_path: Path) -> bytes | None:
+        """Return the raw cookies.jar bytes if it holds real cookies, else None.
+
+        A freshly-cleared aiohttp jar serialises to ``{}`` (2 bytes). We treat
+        that — and any unreadable/empty file — as "no valid cookies".
+        """
+        try:
+            raw = jar_path.read_bytes()
+        except OSError:
+            return None
+        if len(raw.strip()) <= 2:  # b"{}" or empty
+            return None
+        return raw
+
+    def _restore_cookies_if_emptied(jar_path: Path, backup: bytes | None) -> None:
+        """Restore a good cookies.jar if shutdown clobbered it with an empty one.
+
+        Upstream's ``get_session`` clears the jar when a load fails, and
+        ``shutdown`` then persists that empty jar — silently logging the user
+        out. If we captured valid cookies before shutdown and the file is now
+        empty, put the good copy back.
+        """
+        if backup is None:
+            return
+        if _read_valid_cookie_bytes(jar_path) is None:
+            try:
+                jar_path.write_bytes(backup)
+            except OSError:
+                pass
+
     # Frontend selection: explicit --mode > saved preference (tdm-cli.json) >
-    # default (TUI). Interactive modes fall back to headless without a TTY.
+    # default (TUI). The terminal modes fall back to headless without a TTY;
+    # web has no such requirement (it's the Docker mode).
     from tdm_cli import prefs
 
     if args._mode is not None:
@@ -221,6 +264,14 @@ if __name__ == "__main__":
         mode = prefs.load_mode() or prefs.DEFAULT_MODE
     if mode in ("tui", "repl") and not console.INTERACTIVE:
         mode = "headless"
+
+    if mode == "web":
+        import os as _os
+
+        import tdm_cli.web as web_frontend
+
+        web_frontend.HOST = args._host or _os.environ.get("TDM_WEB_HOST", "127.0.0.1")
+        web_frontend.PORT = int(args._port or _os.environ.get("TDM_WEB_PORT", "8080"))
 
     import tdm_cli.gui as cli_gui
 
@@ -273,7 +324,14 @@ if __name__ == "__main__":
                 loop.remove_signal_handler(signal.SIGINT)
                 loop.remove_signal_handler(signal.SIGTERM)
             client.print(_("gui", "status", "exiting"))
+            # Guard against losing a valid login: upstream's shutdown() writes the
+            # session's cookie jar back to disk unconditionally. If the session
+            # never loaded cookies (e.g. an offline start, or a jar-load failure
+            # cleared them), that write clobbers a good cookies.jar with "{}".
+            # Snapshot a valid on-disk jar first, restore it if shutdown emptied it.
+            cookie_backup = _read_valid_cookie_bytes(constants.COOKIES_PATH)
             await client.shutdown()
+            _restore_cookies_if_emptied(constants.COOKIES_PATH, cookie_backup)
         if not client.gui.close_requested:
             # Terminated by an error rather than a user request.
             client.print(_("status", "terminated"))
@@ -285,9 +343,9 @@ if __name__ == "__main__":
         # Fully tear down the TUI (restores the terminal) before exiting.
         await client.gui.frontend.wait_stopped()
         client.gui.close_window()
-        if client.gui.mode == "tui" and exit_status != 0:
-            # The dashboard is gone; repeat the tail of the log so the error
-            # stays visible in the plain terminal.
+        if client.gui.mode in ("tui", "repl") and exit_status != 0:
+            # The Textual app has torn down; repeat the tail of the log so the
+            # error stays visible in the plain terminal.
             for entry in list(client.gui.state.log_lines)[-15:]:
                 print(f"{entry.stamp}: {entry.text}")
         sys.exit(exit_status)

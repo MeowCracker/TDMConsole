@@ -182,8 +182,15 @@ def _lazy_repl(manager: "GUIManager") -> Any:
     return ReplFrontend(manager)
 
 
+def _lazy_web(manager: "GUIManager") -> Any:
+    from tdm_cli.web import WebFrontend
+
+    return WebFrontend(manager)
+
+
 register_frontend("tui", _lazy_tui)
 register_frontend("repl", _lazy_repl)
+register_frontend("web", _lazy_web)
 register_frontend("headless", HeadlessFrontend)
 
 
@@ -632,6 +639,9 @@ class GUIManager:
         from within a frontend (e.g. the REPL's ``/switch-mode``).
         """
         if mode == self.mode or self._switch_task is not None:
+            return
+        if mode in ("tui", "repl") and not console.INTERACTIVE:
+            self.print(f"Cannot switch to {mode} mode: no interactive terminal attached.")
             return
         self._switch_task = asyncio.create_task(self._switch_frontend(mode))
 

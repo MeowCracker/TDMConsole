@@ -323,6 +323,7 @@ class SettingsScreen(Screen[None]):
             yield Select(
                 [("Full-screen dashboard (TUI)", "tui"),
                  ("Command REPL (Claude-Code style)", "repl"),
+                 ("Web UI (browser, for Docker)", "web"),
                  ("Plain log (headless)", "headless")],
                 value=self._m.mode,
                 allow_blank=False,

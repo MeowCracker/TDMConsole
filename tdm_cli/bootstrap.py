@@ -59,15 +59,36 @@ def _patch_constants(settings_path: str | None, cookies_path: str | None) -> Non
     - ``LANG_PATH``: upstream derives it from ``WORKING_DIR`` = the directory of
       ``sys.argv[0]``. For us that is the outer repo (where ``main.py`` lives),
       not the submodule that actually ships ``lang/``. Runtime *state*
-      (settings.json, cookies.jar, log.txt, lock.file, cache/) intentionally
-      keeps landing in the outer dir — only the resource lookup is repointed.
-    - ``SETTINGS_PATH`` / ``COOKIES_PATH``: user-provided overrides.
+      (settings.json, cookies.jar, log.txt, lock.file, cache/) otherwise keeps
+      landing in the outer dir — only the resource lookup is repointed.
+    - ``TDM_DATA_DIR`` env: relocate ALL runtime state to one directory (used by
+      the Docker image to persist state on a mounted volume, since argv[0]'s dir
+      would otherwise be the read-only image path).
+    - ``SETTINGS_PATH`` / ``COOKIES_PATH``: explicit ``-c`` / ``--jar`` overrides
+      (win over ``TDM_DATA_DIR``).
     """
     from pathlib import Path
 
     import constants
 
     constants.LANG_PATH = Path(SUBMODULE_DIR, "lang")
+
+    data_dir = os.environ.get("TDM_DATA_DIR")
+    if data_dir:
+        d = Path(data_dir).expanduser()
+        try:
+            d.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            pass
+        constants.WORKING_DIR = d
+        constants.SETTINGS_PATH = Path(d, "settings.json")
+        constants.COOKIES_PATH = Path(d, "cookies.jar")
+        constants.LOG_PATH = Path(d, "log.txt")
+        constants.LOCK_PATH = Path(d, "lock.file")
+        constants.DUMP_PATH = Path(d, "dump.dat")
+        constants.CACHE_PATH = Path(d, "cache")
+        constants.CACHE_DB = Path(d, "cache", "mapping.json")
+
     if settings_path:
         constants.SETTINGS_PATH = Path(settings_path).expanduser().resolve()
     if cookies_path:

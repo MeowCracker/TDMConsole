@@ -46,7 +46,7 @@ def run_wizard(settings_path: Path) -> int:
     from settings import default_settings
     from constants import LANG_PATH, DEFAULT_LANG, PriorityMode
 
-    print(f"TDM-CLI settings wizard — writes {settings_path}")
+    print(f"TDMConsole settings wizard — writes {settings_path}")
     print("Press Enter to accept the [default] on any question.\n")
 
     if settings_path.exists():
@@ -94,8 +94,9 @@ def run_wizard(settings_path: Path) -> int:
     print("Interface mode (when run in a terminal):")
     print("  1. Full-screen dashboard (TUI)")
     print("  2. Command REPL (Claude-Code style, /commands)")
-    print("  3. Plain log lines (headless)")
-    mode_name = {1: "tui", 2: "repl", 3: "headless"}[_ask_int("Interface", 1, 1, 3)]
+    print("  3. Web UI (browser dashboard, for Docker/servers)")
+    print("  4. Plain log lines (headless)")
+    mode_name = {1: "tui", 2: "repl", 3: "web", 4: "headless"}[_ask_int("Interface", 1, 1, 4)]
 
     data = dict(default_settings)
     data.update(

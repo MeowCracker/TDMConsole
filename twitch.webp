@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Matomo — per-locale site id (matches the legacy per-subdomain Matomo properties) -->
+<script>
+  var _paq = window._paq = window._paq || [];
+  /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  (function() {
+    var u="//tracking.wallpapers.com/";
+    _paq.push(['setTrackerUrl', u+'matomo.php']);
+    _paq.push(['setSiteId', '2']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<!-- End Matomo Code -->
+
+
+
+
+<title>Sign In | Wallpapers.com</title>
+<meta name="description" content="Sign in to Wallpapers.com">
+
+
+<meta name="robots" content="noindex,follow">
+
+
+
+
+
+<link rel="canonical" href="https://wallpapers.com/login/">
+
+
+
+  
+  
+
+
+
+<link rel="alternate" hreflang="x-default" href="https://wallpapers.com/login/">
+
+
+<link rel="alternate" hreflang="en" href="https://wallpapers.com/login/">
+
+
+<link rel="alternate" hreflang="da" href="https://dk.wallpapers.com/login/">
+
+
+<link rel="alternate" hreflang="de" href="https://de.wallpapers.com/login/">
+
+
+<link rel="alternate" hreflang="sv" href="https://se.wallpapers.com/login/">
+
+
+<link rel="alternate" hreflang="pt" href="https://pt.wallpapers.com/login/">
+
+
+<link rel="alternate" hreflang="it" href="https://it.wallpapers.com/login/">
+
+
+<link rel="alternate" hreflang="es" href="https://es.wallpapers.com/login/">
+
+
+<link rel="alternate" hreflang="nl" href="https://nl.wallpapers.com/login/">
+
+
+<link rel="alternate" hreflang="fr" href="https://fr.wallpapers.com/login/">
+
+
+<link rel="alternate" hreflang="id" href="https://bahasa.wallpapers.com/login/">
+
+
+<link rel="alternate" hreflang="nb" href="https://no.wallpapers.com/login/">
+
+
+<link rel="alternate" hreflang="fi" href="https://fi.wallpapers.com/login/">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id":   "https://wallpapers.com#organization",
+      "name":  "Wallpapers.com",
+      "alternateName": "Wallpapers",
+      "url":   "https://wallpapers.com/",
+      "logo": {
+        "@type": "ImageObject",
+        "@id":   "https://wallpapers.com#logo",
+        
+        "url":   "https://wallpapers.com/static/src/Logo.svg",
+        "contentUrl": "https://wallpapers.com/static/src/Logo.svg",
+        "caption": "Wallpapers.com"
+      },
+      "image": {"@id": "https://wallpapers.com#logo"},
+      "sameAs": [
+        "https://www.facebook.com/wallpaperscom",
+        "https://www.pinterest.com/wallpaperscom/",
+        "https://www.instagram.com/wallpapers_com/",
+        "https://twitter.com/wallpaperscom"
+      ]
+    },
+    {
+      "@type": "WebSite",
+      
+      "@id":   "https://wallpapers.com/#website",
+      "name": "Wallpapers.com",
+      "url":  "https://wallpapers.com/",
+      "description": "Free HD, 4K and 8K wallpapers, backgrounds, pictures, SVG and PNG.",
+      "publisher": {"@id": "https://wallpapers.com#organization"},
+      "inLanguage": "en",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {"@type":"EntryPoint","urlTemplate":"https://wallpapers.com/search?q={search_term_string}"},
+        "query-input": "required name=search_term_string"
+      }
+    }
+  ]
+}
+</script>
+
+
+<meta property="og:title" content="Sign In | Wallpapers.com">
+<meta property="og:description" content="Sign in to Wallpapers.com">
+<meta property="og:url" content="https://wallpapers.com/login/">
+<meta property="og:site_name" content="Wallpapers.com">
+
+
+<meta property="og:locale" content="en_US">
+
+<meta property="og:type" content="website">
+
+
+  
+  
+  
+
+<meta property="og:image" content="https://wallpapers.com/static/img/og-default.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+
+
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@wallpaperscom">
+<meta name="twitter:title" content="Sign In | Wallpapers.com">
+<meta name="twitter:description" content="Sign in to Wallpapers.com">
+<meta name="twitter:image" content="https://wallpapers.com/static/img/og-default.jpg">
+
+
+
+
+
+<link rel="preload" href="/static/res/sprite.svg" as="image" type="image/svg+xml">
+
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+
+<style>
+  /* Hide the body until critical CSS is in, but only briefly — the
+     `.no-css` class is removed by the inline JS below once the first
+     wp-* stylesheet finishes parsing. */
+  body { background:#fff; color:#1f2937;
+          font-family:-apple-system, system-ui, "Segoe UI", Roboto, sans-serif; }
+  /* Reserve nav header height so content doesn't jump when wp-main.css
+     lands and adds 1 row of padding + the logo. Width matches the live
+     desktop header; mobile shrinks via wp-main.css media query. */
+  .nav-skeleton,
+  nav.navbar, header.site-header, .wpc-nav-row {
+    min-height: 56px;
+  }
+</style>
+
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/css/bootstrap.min.css">
+
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap">
+
+
+<link rel="stylesheet" href="/static/css/wp-main.css?v=20260607b">
+<link rel="stylesheet" href="/static/css/wp-extras.css">
+<link rel="stylesheet" href="/static/css/wp-extras2.css">
+<link rel="stylesheet" href="/static/css/wp-promo.css">
+
+<link rel="stylesheet" href="/static/style.css">
+
+<link rel="stylesheet" href="/static/css/mobile-nav.css?v=16">
+
+
+<link rel="icon" href="/static/src/fav-icon.svg" type="image/svg+xml">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon/favicon-32x32.png?v=20260619">
+<link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon/favicon-16x16.png?v=20260619">
+<link rel="icon" type="image/png" sizes="192x192" href="/static/img/favicon/favicon-192x192.png?v=20260619">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/img/favicon/apple-touch-icon.png?v=20260619">
+<link rel="shortcut icon" href="/favicon.ico">
+
+
+
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+            new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-WV4522P');</script>
+<!-- End Google Tag Manager -->
+
+
+
+
+
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5734292711266667"
+          crossorigin="anonymous"></script>
+
+
+
+
+
+<link rel="stylesheet" href="https://assets.dictivatted-foothers.cloud/resources/css/main.min.css"
+      media="print" onload="this.media='all'">
+<link rel="stylesheet" href="https://www.restomp-excity.online/assets/style.min.css"
+      media="print" onload="this.media='all'">
+
+
+
+
+<link rel="stylesheet" href="/static/css/wpc_ads.css?v=20260709a">
+<script defer src="/static/js/wpc_ads.js?v=20260611b"></script>
+
+  
+<style>
+  /* Login owns the entire viewport — the minimal-chrome header strip
+     (top-left logo) and footer (© Terms · Privacy · Contact) from
+     base_minimal.html are hidden so the hero gradient runs edge-to-edge. */
+  body.login .min-header,
+  body.login .min-foot { display: none !important; }
+  body.login { background: #fff; }
+
+  /* 70/30 split — hero panel on the left, form card on the right.
+     Below 880px the hero collapses and the form takes the full width.
+     min-height:100vh now that the minimal header/footer are hidden. */
+  .auth-shell {
+    display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(380px, 1fr);
+    gap: 0; min-height: 100vh;
+  }
+  /* Hero background — warm cream → sky blue gradient that fully covers
+     the left/non-form region. Slightly deeper stops than the original so
+     it reads as an intentional brand panel, not a near-white wash. */
+  /* Legacy wp-main wraps `<main>` with a `main aside { max-width: 22rem; }`
+     rule (built for the GDPR sidebar). Without these overrides the grid
+     cell stays wide but the aside element itself clamps to 22rem, leaving
+     a grey gap between the gradient and the form. */
+  main .auth-hero, .auth-hero {
+    background: linear-gradient(135deg, #fde68a 0%, #fef3c7 30%, #bae6fd 75%, #7dd3fc 100%);
+    color: #1f2937; padding: 3.25rem 3rem; display: flex; flex-direction: column;
+    position: relative; overflow: hidden;
+    width: 100% !important; max-width: none !important;
+    align-self: stretch; justify-self: stretch;
+  }
+  .auth-hero::before {
+    content: ""; position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 80% 10%, rgba(251,191,36,.35), transparent 50%),
+      radial-gradient(circle at 10% 90%, rgba(56,189,248,.30), transparent 45%);
+    pointer-events: none;
+  }
+  .auth-hero-content {
+    position: relative; z-index: 1;
+    width: 100%; max-width: 520px; min-width: 0;
+    margin: auto 0;
+  }
+  .auth-hero h2 {
+    font-size: clamp(1.65rem, 2.2vw + 1rem, 2.1rem);
+    line-height: 1.15; margin: 0 0 .85rem; color: #111827;
+    word-break: break-word; hyphens: auto;
+  }
+  .auth-hero p  { color: #475569; font-size: 1.05rem; line-height: 1.55; margin: 0 0 1.5rem; max-width: 100%; }
+  .auth-hero ul { list-style: none; padding: 0; margin: 0; display: grid; gap: .55rem; }
+  .auth-hero li { display: flex; align-items: flex-start; gap: .6rem; color: #1f2937; font-size: .95rem; }
+  .auth-hero li::before {
+    content: "✓"; width: 22px; height: 22px; flex-shrink: 0;
+    border-radius: 50%; background: rgba(31,41,55,.08); color: #d97706;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: .85rem;
+  }
+
+  .auth-side { padding: 3rem 2.25rem; display: flex; flex-direction: column;
+                justify-content: center; background: #fff; }
+  .auth-wrap { width: 100%; max-width: 420px; margin: 0 auto; padding: 0; }
+  .auth-card { background: transparent; border: 0; border-radius: 0; padding: 0; box-shadow: none; }
+
+  /* Single logo IMG (the full Logo.svg, same as the nav uses), scaled
+     small. No extra wordmark text — Logo.svg already contains it. The
+     prior version used the fav-icon + a hand-written "Wallpapers.com"
+     wordmark, which read inconsistently with the nav. */
+  .auth-logo {
+    display: inline-flex; align-items: center;
+    margin-bottom: 1.5rem;
+    text-decoration: none;
+  }
+  .auth-logo img {
+    height: 30px; width: auto; display: block;
+  }
+  /* Hero-side logo gets a much bigger treatment — it's the brand
+     anchor of the page. Form-side logo stays compact (30px). */
+  .auth-hero .auth-logo img { height: 60px; }
+  .auth-hero .auth-logo { margin-bottom: 2.25rem; }
+
+  @media (max-width: 880px) {
+    .auth-shell { grid-template-columns: 1fr; min-height: 0; }
+    /* Mobile: the login/signup FORM goes first (top), the colorful gradient +
+       brand text sits BELOW it. Reorder the grid items and show the hero with
+       lighter mobile padding instead of hiding it. */
+    .auth-side { order: 1; padding: 2rem 1.25rem; }
+    .auth-hero {
+      display: flex !important;
+      order: 2;
+      padding: 2.25rem 1.5rem;
+      min-height: 0;
+      border-radius: 18px 18px 0 0;
+    }
+    .auth-hero .auth-logo { display: none; }   /* form side already has the logo */
+    .auth-hero h2 { font-size: 1.5rem; }
+  }
+  .auth-tabs {
+    display: flex; gap: .25rem; padding: .3rem;
+    background: #f3f4f6; border-radius: 999px;
+    margin-bottom: 1.5rem;
+  }
+  .auth-tabs button {
+    flex: 1 1 0; padding: .55rem; border: none; background: transparent;
+    border-radius: 999px; font-weight: 700; font-size: .92rem;
+    color: #6b7280; cursor: pointer; transition: background .15s, color .15s;
+  }
+  .auth-tabs button.active { background: #1f2937; color: #fff; }
+
+  .auth-oauth {
+    display: flex; flex-direction: column; gap: .55rem;
+    margin-bottom: 1.25rem;
+  }
+  /* OAuth buttons — slightly more visible than the previous flat white.
+     Subtle grey body + darker hairline border so they read as real
+     interactive surfaces, not "is that a button or a divider?". */
+  .oauth-btn {
+    display: flex; align-items: center; justify-content: center; gap: .55rem;
+    width: 100%; padding: .8rem 1rem; border-radius: 10px;
+    border: 1.5px solid #d1d5db; background: #f9fafb;
+    font-weight: 700; font-size: .95rem; color: #1f2937;
+    cursor: pointer; text-decoration: none;
+    transition: background .12s, border-color .12s, box-shadow .12s;
+  }
+  .oauth-btn:hover {
+    background: #fff; border-color: #9ca3af;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    color: #1f2937;
+  }
+  .oauth-btn img { width: 18px; height: 18px; }
+
+  .auth-divider {
+    display: flex; align-items: center; gap: .75rem;
+    color: #9ca3af; font-size: .8rem; margin: 1rem 0;
+  }
+  .auth-divider::before, .auth-divider::after {
+    content: ''; flex: 1 1 auto; height: 1px; background: #e5e7eb;
+  }
+
+  .auth-field { margin-bottom: .85rem; }
+  .auth-field label {
+    display: block; font-size: .85rem; font-weight: 600;
+    color: #374151; margin-bottom: .35rem;
+  }
+  .auth-field input {
+    width: 100%; padding: .7rem .85rem;
+    border: 1px solid #d1d5db; border-radius: 8px;
+    font-size: .95rem; color: #1f2937; background: #fff;
+    box-sizing: border-box;
+  }
+  .auth-field input:focus { outline: none; border-color: #2464c4; }
+
+  .auth-row { display: flex; align-items: center; justify-content: space-between;
+              font-size: .82rem; margin: -.25rem 0 1rem; }
+  .auth-row a { color: #2464c4; text-decoration: none; }
+
+  .auth-submit {
+    width: 100%; padding: .85rem; border: none;
+    background: #2464c4; color: #fff; border-radius: 10px;
+    font-weight: 800; font-size: 1rem; cursor: pointer;
+  }
+  .auth-submit:hover { background: #1d4ed8; }
+  .auth-submit:disabled { opacity: .55; cursor: not-allowed; }
+
+  .auth-msg { font-size: .85rem; margin-top: .75rem; min-height: 1.2em; text-align: center; }
+  .auth-msg.err { color: #dc2626; }
+  .auth-msg.ok  { color: #15803d; }
+
+  .auth-foot { text-align: center; color: #6b7280; font-size: .85rem; margin-top: 1rem; }
+  .auth-foot a { color: #2464c4; text-decoration: none; font-weight: 600; }
+  .auth-terms { color: #9ca3af; font-size: .72rem; text-align: center;
+                margin-top: 1rem; line-height: 1.45; }
+  .auth-terms a { color: #6b7280; }
+
+  /* Pane swap — CSS Grid trick: all panes share grid cell 1/1, so the
+     wrapper takes the height of the TALLEST pane. Inactive panes are
+     hidden via visibility (kept in layout flow → no height jump when
+     switching Sign up ↔ Log in). */
+  .pane-stack { display: grid; }
+  .pane-stack > .pane {
+    grid-area: 1 / 1;
+    visibility: hidden; pointer-events: none;
+    opacity: 0; transition: opacity .12s ease;
+  }
+  .pane-stack > .pane.active {
+    visibility: visible; pointer-events: auto;
+    opacity: 1;
+  }
+  /* Legacy: outside the stack, fall back to display:none for non-active. */
+  .pane:not(.active):not(.pane-stack > .pane) { display: none; }
+</style>
+
+  <style>
+    /* Minimal-chrome layout — used for auth + checkout pages where the
+       full header/nav/footer would distract users from the conversion. */
+    body { background: #f9fafb; }
+    .min-header {
+      padding: 1.25rem 1rem; text-align: center;
+      border-bottom: 1px solid #e5e7eb; background: #fff;
+    }
+    .min-brand { display: inline-flex; align-items: center; gap: .5rem; }
+    .min-brand-mark { width: 26px; height: 26px; display: block; }
+    /* The wordmark is the SAME Logo-text.svg used in the site footer. */
+    .min-brand-logo { height: 22px; width: auto; display: block; }
+    .min-foot {
+      text-align: center; color: #9ca3af; font-size: .78rem;
+      padding: 1.25rem 1rem; border-top: 1px solid #e5e7eb; background: #fff;
+      margin-top: 3rem;
+    }
+    .min-foot a { color: #6b7280; text-decoration: none; margin: 0 .5rem; }
+    .min-foot a:hover { color: #1f2937; }
+  </style>
+</head>
+<body class="auth login">
+  
+  <header class="min-header">
+    <span class="min-brand">
+      <img class="min-brand-mark" src="/static/src/fav-icon.svg" alt="">
+      <img class="min-brand-logo" src="/static/src/Logo-text.svg" alt="Wallpapers">
+    </span>
+  </header>
+
+  
+<main class="page" style="background:#f8fafc;">
+<div class="auth-shell">
+
+  
+  <aside class="auth-hero" aria-hidden="true">
+    <div class="auth-hero-content">
+      <a href="/" class="auth-logo" style="margin-bottom:2rem;">
+        <img src="/static/src/Logo.svg" alt="Wallpapers">
+      </a>
+      <h2>2+ million wallpapers. 50+ AI tools. One free account.</h2>
+      <p>Wallpapers, backgrounds, PNGs and SVGs — free to download. Plus boards to organize and a full AI toolkit to remix what you save.</p>
+      <ul>
+        <li><strong>2M+ assets</strong> — wallpapers, backgrounds, PNGs, SVGs, coloring pages</li>
+        <li><strong>50+ AI tools</strong> — upscale, remove background, convert, generate, restyle</li>
+        <li><strong>100 free AI credits</strong> — every month, no card required</li>
+        <li><strong>Boards</strong> — private + public collections, save in one click</li>
+        <li><strong>8K downloads with Premium</strong> — 7-day free trial, cancel any time</li>
+      </ul>
+    </div>
+  </aside>
+
+  <section class="auth-side">
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <a href="/" class="auth-logo" style="justify-content:center; display:flex;">
+        <img src="/static/src/Logo.svg" alt="Wallpapers">
+      </a>
+
+      
+      
+      <div class="auth-tabs" role="tablist">
+        <button type="button" id="tab-signup" class="" role="tab" aria-selected="false">Sign up</button>
+        <button type="button" id="tab-login" class="active" role="tab" aria-selected="true">Log in</button>
+      </div>
+
+      
+      <div class="auth-oauth">
+        
+        <button type="button" class="oauth-btn" id="btn-google">
+          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+            <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.79 2.72v2.26h2.9c1.7-1.57 2.69-3.88 2.69-6.62z"/>
+            <path fill="#34A853" d="M9 18c2.43 0 4.47-.81 5.96-2.18l-2.9-2.26c-.8.54-1.83.86-3.06.86-2.36 0-4.36-1.6-5.07-3.74H.96v2.34A9 9 0 0 0 9 18z"/>
+            <path fill="#FBBC05" d="M3.93 10.68A5.4 5.4 0 0 1 3.65 9c0-.59.1-1.16.28-1.68V4.98H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.02l2.97-2.34z"/>
+            <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58A9 9 0 0 0 .96 4.98l2.97 2.34C4.64 5.18 6.64 3.58 9 3.58z"/>
+          </svg>
+          Continue with Google
+        </button>
+        
+        <div id="g-btn" style="display:flex; justify-content:center;"></div>
+        
+        
+        <button type="button" class="oauth-btn" id="btn-facebook">
+          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+            <path fill="#1877F2" d="M18 9c0-5-4-9-9-9S0 4 0 9c0 4.5 3.3 8.2 7.6 8.9V11.6H5.3V9h2.3V7c0-2.3 1.4-3.6 3.5-3.6 1 0 2 .2 2 .2v2.2h-1.1c-1.1 0-1.5.7-1.5 1.4V9h2.5l-.4 2.6h-2.1V18C14.7 17.2 18 13.5 18 9z"/>
+          </svg>
+          Continue with Facebook
+        </button>
+        
+
+        
+        
+      </div>
+
+      <div class="auth-divider">or</div>
+
+      
+      <div class="pane-stack">
+      
+      <div class="pane active" id="pane-login">
+        <form id="form-login" novalidate>
+          <div class="auth-field">
+            <label for="li-email">Email or Username</label>
+            <input type="text" id="li-email" name="username" autocomplete="username" required>
+          </div>
+          <div class="auth-field">
+            <label for="li-pass">Password</label>
+            <input type="password" id="li-pass" name="password" autocomplete="current-password" required>
+          </div>
+          <div class="auth-row">
+            <span></span>
+            <a href="#" id="link-recover" title="Forgot password?">Forgot password?</a>
+          </div>
+          <button type="submit" class="auth-submit" id="li-submit">Log in</button>
+          <p class="auth-msg" id="li-msg"></p>
+        </form>
+      </div>
+
+      
+      <div class="pane " id="pane-signup">
+        <form id="form-signup" novalidate>
+          <div class="auth-field">
+            <label for="su-email">Email</label>
+            <input type="email" id="su-email" name="email" autocomplete="email" required>
+          </div>
+          <div class="auth-field">
+            <label for="su-user">Username</label>
+            <input type="text" id="su-user" name="username" autocomplete="username" required>
+          </div>
+          <div class="auth-field">
+            <label for="su-pass">Password</label>
+            <input type="password" id="su-pass" name="password" autocomplete="new-password" minlength="6" required>
+          </div>
+          <button type="submit" class="auth-submit" id="su-submit">Create free account</button>
+          <p class="auth-msg" id="su-msg"></p>
+        </form>
+      </div>
+
+      
+      <div class="pane" id="pane-recover">
+        <form id="form-recover" novalidate>
+          <p style="color:#6b7280; font-size:.88rem; margin:0 0 1rem;">
+            Enter your email and we will send you a password reset link.
+          </p>
+          <div class="auth-field">
+            <label for="rc-email">Email</label>
+            <input type="email" id="rc-email" name="email" autocomplete="email" required>
+          </div>
+          <button type="submit" class="auth-submit" id="rc-submit">Send reset link</button>
+          <p class="auth-msg" id="rc-msg"></p>
+          <p class="auth-foot"><a href="#" id="link-back-login" title="← Back to log in">← Back to log in</a></p>
+        </form>
+      </div>
+      </div>
+
+      <p class="auth-terms">
+        By continuing you agree to our
+        <a href="/terms" title="Terms">Terms</a>
+        and
+        <a href="/privacy-policy" title="Privacy Policy">Privacy Policy</a>.
+      </p>
+    </div>
+  </div>
+  </section>
+</div>
+</main>
+
+<script>
+(function(){
+  var nextUrl = "/download/hd/twitch-lights-and-smoke-rh78xu4xdj0vkkh0.webp" || '/';
+
+  // ── Pane / tab switching ────────────────────────────────────────
+  function show(paneId, activeTab) {
+    document.querySelectorAll('.pane').forEach(function(p){ p.classList.toggle('active', p.id === paneId); });
+    if (activeTab) {
+      document.querySelectorAll('.auth-tabs button').forEach(function(b){
+        var on = b.id === activeTab;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-selected', on);
+      });
+    }
+  }
+  document.getElementById('tab-login').addEventListener('click', function(){ show('pane-login', 'tab-login'); });
+  document.getElementById('tab-signup').addEventListener('click', function(){ show('pane-signup', 'tab-signup'); });
+  document.getElementById('link-recover').addEventListener('click', function(e){ e.preventDefault(); show('pane-recover'); });
+  document.getElementById('link-back-login').addEventListener('click', function(e){ e.preventDefault(); show('pane-login', 'tab-login'); });
+
+  // ── Login submit ────────────────────────────────────────────────
+  document.getElementById('form-login').addEventListener('submit', function(e){
+    e.preventDefault();
+    var btn = document.getElementById('li-submit');
+    var msg = document.getElementById('li-msg');
+    msg.className = 'auth-msg'; msg.textContent = '';
+    var data = {
+      username: document.getElementById('li-email').value.trim(),
+      password: document.getElementById('li-pass').value,
+    };
+    if (!data.username || !data.password) {
+      msg.className = 'auth-msg err'; msg.textContent = ("Email and password are required."); return;
+    }
+    btn.disabled = true; btn.textContent = '…';
+    fetch('/auth/login', {
+      method: 'POST', credentials: 'include',
+      headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+      body: JSON.stringify(data),
+    }).then(function(r){ return r.json().then(function(j){ return {ok:r.ok, body:j}; }); })
+      .then(function(r){
+        btn.disabled = false; btn.textContent = ("Log in");
+        if (r.ok) {
+          msg.className = 'auth-msg ok'; msg.textContent = ("Signed in! Redirecting\u2026");
+          window.location.replace(nextUrl);
+        } else {
+          msg.className = 'auth-msg err'; msg.textContent = (r.body && r.body.msg) || ("Invalid credentials.");
+        }
+      }).catch(function(){
+        btn.disabled = false; btn.textContent = ("Log in");
+        msg.className = 'auth-msg err'; msg.textContent = ("Network error \u2014 please retry.");
+      });
+  });
+
+  // ── Signup submit ───────────────────────────────────────────────
+  document.getElementById('form-signup').addEventListener('submit', function(e){
+    e.preventDefault();
+    var btn = document.getElementById('su-submit');
+    var msg = document.getElementById('su-msg');
+    msg.className = 'auth-msg'; msg.textContent = '';
+    var data = {
+      email: document.getElementById('su-email').value.trim().toLowerCase(),
+      username: document.getElementById('su-user').value.trim(),
+      password: document.getElementById('su-pass').value,
+    };
+    if (!data.email || !data.username || !data.password) {
+      msg.className = 'auth-msg err'; msg.textContent = ("All fields are required."); return;
+    }
+    if (data.password.length < 6) {
+      msg.className = 'auth-msg err'; msg.textContent = ("Password must be at least 6 characters."); return;
+    }
+    btn.disabled = true; btn.textContent = '…';
+    fetch('/auth/signup', {
+      method: 'POST', credentials: 'include',
+      headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+      body: JSON.stringify(data),
+    }).then(function(r){ return r.json().then(function(j){ return {ok:r.ok, body:j}; }); })
+      .then(function(r){
+        btn.disabled = false; btn.textContent = ("Create free account");
+        if (r.ok) {
+          msg.className = 'auth-msg ok'; msg.textContent = ("Account created! Redirecting\u2026");
+          window.location.replace(nextUrl);
+        } else {
+          msg.className = 'auth-msg err'; msg.textContent = (r.body && r.body.msg) || ("Signup failed.");
+        }
+      }).catch(function(){
+        btn.disabled = false; btn.textContent = ("Create free account");
+        msg.className = 'auth-msg err'; msg.textContent = ("Network error \u2014 please retry.");
+      });
+  });
+
+  // ── Recover submit — POST to /auth/customer/reset ──────────────
+  document.getElementById('form-recover').addEventListener('submit', function(e){
+    e.preventDefault();
+    var btn = document.getElementById('rc-submit');
+    var msg = document.getElementById('rc-msg');
+    msg.className = 'auth-msg'; msg.textContent = '';
+    var email = document.getElementById('rc-email').value.trim().toLowerCase();
+    if (!email) {
+      msg.className = 'auth-msg err'; msg.textContent = ("Email is required."); return;
+    }
+    btn.disabled = true; btn.textContent = '…';
+    fetch('/auth/customer/reset', {
+      method: 'POST', credentials: 'include',
+      headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+      body: JSON.stringify({email: email}),
+    }).then(function(r){ return r.json().catch(function(){ return {}; }); })
+      .then(function(){
+        // Always succeed-style — endpoint never confirms whether the email
+        // exists (anti-enumeration).
+        btn.disabled = false; btn.textContent = ("Send reset link");
+        msg.className = 'auth-msg ok';
+        msg.textContent = ("If that email is registered, you\u0027ll receive a reset link shortly.");
+      }).catch(function(){
+        btn.disabled = false; btn.textContent = ("Send reset link");
+        msg.className = 'auth-msg err';
+        msg.textContent = ("Network error \u2014 please retry.");
+      });
+  });
+
+  // ── Google OAuth (Identity Services — rendered button, popup flow) ──
+  // login.wallpapers.com uses renderButton (not One-Tap prompt(), which is
+  // silently suppressed by FedCM/3p-cookie rules and made the button look
+  // dead). We poll until the GIS SDK (async) is ready, then render Google's
+  // own button into #g-btn and hide the placeholder.
+  
+  (function initGoogle(tries){
+    if (window.google && google.accounts && google.accounts.id) {
+      google.accounts.id.initialize({
+        client_id: "44812929862-e7k4js1kqb7rdft9m4d2ke2hiov95290.apps.googleusercontent.com",
+        ux_mode: 'popup',
+        callback: function(data){
+          fetch('/auth/oauth/google', {
+            method: 'POST', credentials: 'include',
+            headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+            body: JSON.stringify(data),
+          }).then(function(r){
+            if (r.ok) window.location.replace(nextUrl);
+            else r.json().then(function(j){ alert((j && j.msg) || "Google sign-in failed."); })
+                         .catch(function(){ alert("Google sign-in failed."); });
+          });
+        },
+      });
+      var host = document.getElementById('g-btn');
+      if (host) {
+        google.accounts.id.renderButton(host, {
+          type: 'standard', theme: 'outline', size: 'large',
+          text: 'continue_with', shape: 'rectangular',
+          logo_alignment: 'left', width: Math.min(host.offsetWidth || 320, 400),
+        });
+        var placeholder = document.getElementById('btn-google');
+        if (placeholder) placeholder.style.display = 'none';
+      }
+      return;
+    }
+    if (tries > 0) setTimeout(function(){ initGoogle(tries - 1); }, 200);  // ~10s
+  })(50);
+  
+
+  // ── Facebook OAuth (FB.login) ───────────────────────────────────
+  
+  var fbBtn = document.getElementById('btn-facebook');
+  if (fbBtn) {
+    fbBtn.addEventListener('click', function(){
+      if (!window.FB) { alert("Facebook is still loading \u2014 please try again in a moment."); return; }
+      FB.login(function(resp){
+        if (resp.status !== 'connected') return;
+        fetch('/auth/oauth/facebook', {
+          method: 'POST', credentials: 'include',
+          headers: {'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'},
+          body: JSON.stringify(resp),
+        }).then(function(r){
+          if (r.ok) window.location.replace(nextUrl);
+          else r.json().then(function(j){ alert((j && j.msg) || "Facebook sign-in failed."); })
+                       .catch(function(){ alert("Facebook sign-in failed."); });
+        });
+      }, {scope: 'public_profile,email'});
+    });
+  }
+  
+})();
+</script>
+
+
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+
+<script>
+  window.fbAsyncInit = function(){ FB.init({appId: "1356973331851877", version: 'v18.0'}); };
+  (function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(d.getElementById(id))return;
+   js=d.createElement(s);js.id=id;js.src='https://connect.facebook.net/en_US/sdk.js';
+   fjs.parentNode.insertBefore(js,fjs);}(document,'script','facebook-jssdk'));
+</script>
+
+
+
+  <footer class="min-foot">
+    © Wallpapers.com ·
+    <a title="Terms" href="/terms">Terms</a> ·
+    <a title="Privacy" href="/privacy-policy">Privacy</a> ·
+    <a title="Contact" href="/contact-us">Contact</a>
+  </footer>
+
+  
+  <div id="wpc-toast" role="status" aria-live="polite"
+       style="position:fixed; bottom:1.5rem; left:50%; transform:translate(-50%, 200%);
+              background:#1f2937; color:#fff; padding:.7rem 1.25rem; border-radius:8px;
+              font-size:.92rem; font-weight:600; z-index:10000; pointer-events:none;
+              box-shadow:0 8px 24px rgba(0,0,0,.18); transition:transform .28s ease;
+              max-width:90vw; text-align:center;"></div>
+  <script>
+    (function(){
+      var el = document.getElementById('wpc-toast'); var hideT = null;
+      window.wpcToast = function(msg, ms){
+        if (!el) return; el.textContent = msg || '';
+        el.style.transform = 'translate(-50%, 0)';
+        if (hideT) clearTimeout(hideT);
+        hideT = setTimeout(function(){ el.style.transform = 'translate(-50%, 200%)'; }, ms || 1800);
+      };
+    })();
+  </script>
+
+  
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start': new Date().getTime(),event:'gtm.js'});
+  var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-WV4522P');</script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XNV3LTC37N"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-XNV3LTC37N', { 'send_page_view': true });
+  </script>
+  <script>
+  (function(){
+    window.wpcTrack = function(eventName, surface, ref, meta) {
+      try {
+        var body = JSON.stringify({event_name:eventName, surface:surface||null,
+          ref:ref||null, meta:meta||null, url:location.href, referrer:document.referrer});
+        if (navigator.sendBeacon) navigator.sendBeacon('/social/track', new Blob([body], {type:'application/json'}));
+        else fetch('/social/track', {method:'POST', credentials:'include',
+              headers:{'Content-Type':'application/json'}, body:body, keepalive:true});
+        if (window.gtag) window.gtag('event', eventName, {surface: surface||'', ref: ref||''});
+      } catch (e) {}
+    };
+  })();
+  </script>
+
+  
+</body>
+</html>

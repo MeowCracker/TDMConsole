@@ -47,7 +47,7 @@ def bar(fraction: float, width: int = 24) -> str:
 
 
 class MinerApp(App[None]):
-    TITLE = "TDM-CLI"
+    TITLE = "TDMConsole"
 
     BINDINGS = [
         Binding("q", "quit_miner", "Quit"),
@@ -135,7 +135,7 @@ class MinerApp(App[None]):
         else:
             user = state.login_status or "logged out"
         self.query_one("#header", Static).update(
-            f"⛏ TDM-CLI │ {state.status or '...'} │ {user} │ ws {ws_count} ({topics} topics)"
+            f"⛏ TDMConsole │ {state.status or '...'} │ {user} │ ws {ws_count} ({topics} topics)"
         )
 
         # Progress panel
