@@ -252,8 +252,8 @@ if __name__ == "__main__":
                 pass
 
     # Frontend selection: explicit --mode > saved preference (tdm-cli.json) >
-    # default (TUI). The terminal modes fall back to headless without a TTY;
-    # web has no such requirement (it's the Docker mode).
+    # default (web, so a bare `docker run` serves the browser UI). The terminal
+    # modes fall back to headless without a TTY; web has no such requirement.
     from tdm_cli import prefs
 
     if args._mode is not None:

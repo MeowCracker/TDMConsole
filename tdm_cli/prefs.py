@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 
 MODES = ("tui", "repl", "web", "headless")
-DEFAULT_MODE = "tui"
+DEFAULT_MODE = "web"
 
 
 def _prefs_path() -> Path:
