@@ -55,6 +55,33 @@ function setAccent(hex) {
 // apply saved theme immediately (before first paint of dynamic content)
 applyAccent(getAccent());
 
+/* ---- light / dark mode, user-overridable, persisted locally ------------- */
+const MODE_KEY = "tdm-mode";
+// Returns "light" | "dark". Default follows the OS preference, unless the
+// user explicitly chose one (saved in localStorage).
+function getMode() {
+  const saved = localStorage.getItem(MODE_KEY);
+  if (saved === "light" || saved === "dark") return saved;
+  return window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches
+    ? "light" : "dark";
+}
+function applyMode(mode) {
+  document.documentElement.setAttribute("data-theme", mode === "light" ? "light" : "dark");
+}
+function setMode(mode) {
+  const m = mode === "light" ? "light" : "dark";
+  localStorage.setItem(MODE_KEY, m);
+  applyMode(m);
+}
+// apply saved / OS-preferred mode immediately
+applyMode(getMode());
+// follow OS changes only while the user hasn't pinned a choice
+if (window.matchMedia) {
+  window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", (e) => {
+    if (!localStorage.getItem(MODE_KEY)) applyMode(e.matches ? "light" : "dark");
+  });
+}
+
 /* ---- i18n: strings fetched from the server, language saved locally ------ */
 const LANG_KEY = "tdm-lang";
 let STR = {};                 // current { key: text } catalogue
@@ -557,6 +584,30 @@ function openSettings() {
   swatches.append(custom);
   themeField.append(swatches);
   node.append(themeField);
+
+  // ---- light / dark mode toggle (applies live, saved locally) ----
+  const modeThemeField = el("div", "field");
+  modeThemeField.append(el("label", null, t("settings.appearance", "Appearance")));
+  const seg = el("div", "seg");
+  const curMode = getMode();
+  [["light", t("settings.light", "Light")], ["dark", t("settings.dark", "Dark")]]
+    .forEach(([v, label]) => {
+      const b = el("button", "seg-btn", label);
+      b.type = "button";
+      b.setAttribute("aria-pressed", String(v === curMode));
+      if (v === curMode) b.classList.add("active");
+      b.onclick = () => {
+        setMode(v);
+        seg.querySelectorAll(".seg-btn").forEach((x) => {
+          const on = x === b;
+          x.classList.toggle("active", on);
+          x.setAttribute("aria-pressed", String(on));
+        });
+      };
+      seg.append(b);
+    });
+  modeThemeField.append(seg);
+  node.append(modeThemeField);
 
   node.append(el("p", "login-url", t("settings.note")));
 

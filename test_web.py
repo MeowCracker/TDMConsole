@@ -133,10 +133,12 @@ async def main() -> None:
                 # no-store so a stale stylesheet can't leave the overlay up
                 assert r.headers.get("Cache-Control") == "no-store"
                 css = await r.text()
-                # Liquid Glass material: frosted backdrop + translucent fill
-                assert "backdrop-filter" in css and "--glass-fill" in css
+                # Material Design 3: tonal surface-container scale + state layers
+                assert "--surface-container" in css and "Material Design 3" in css
                 # accent colour is themeable via --accent-r/g/b channels
                 assert "--accent-r" in css and ".swatch" in css
+                # light + dark themes: both data-theme blocks defined
+                assert '[data-theme="light"]' in css and '[data-theme="dark"]' in css
                 # overlay is hidden by default and only shown via .open
                 assert ".modal-root.open" in css
                 idx_base = css.index(".modal-root {")
@@ -151,6 +153,8 @@ async def main() -> None:
                 assert "i-online" in js and "btn-online" in js
                 # theme picker: presets + persisted accent applied to CSS vars
                 assert "PRESET_THEMES" in js and "applyAccent" in js
+                # light/dark toggle: persisted mode applied to data-theme
+                assert "applyMode" in js and "prefers-color-scheme" in js
                 # Settings Save must only send a command when the field changed,
                 # so opening Settings never clears the proxy / restarts the miner.
                 assert "!== s.priorityMode" in js and "!== origProxy" in js
