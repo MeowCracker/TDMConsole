@@ -1,0 +1,53 @@
+TDMConsole
+Copyright (C) 2025 MeowCracker
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License version 3, as published by the Free
+Software Foundation. See the LICENSE file for the full text.
+
+------------------------------------------------------------------------------
+Third-party components
+------------------------------------------------------------------------------
+
+This project builds on and redistributes the following work:
+
+  TwitchDropsMiner
+  Copyright (c) 2024 DevilXD
+  Licensed under the MIT License.
+  Source: https://github.com/DevilXD/TwitchDropsMiner
+
+  The upstream project is included as a git submodule (in source checkouts) and
+  is bundled verbatim into the Docker image and the single-file executables that
+  this project distributes. Its original MIT LICENSE is retained at
+  TwitchDropsMiner/LICENSE and reproduced below. The MIT terms permit this
+  inclusion in a GPLv3-licensed combined work.
+
+TDMConsole itself (everything outside the TwitchDropsMiner/ submodule) is
+licensed under the GNU General Public License v3.0. The combined, distributed
+work is therefore governed by the GPLv3.
+
+------------------------------------------------------------------------------
+MIT License — TwitchDropsMiner (DevilXD)
+------------------------------------------------------------------------------
+
+MIT License
+
+Copyright (c) 2024 DevilXD
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

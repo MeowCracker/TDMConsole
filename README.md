@@ -87,7 +87,43 @@ main.py
 - **零改动 submodule** → 上游更新永不产生合并冲突。
 - 唯一契约是 `GUIManager` 的公开接口；上游若改动它，`--check-contract` 会指出缺了什么，只需改 `tdm_cli/gui.py`。
 
-## 安装
+## 下载与运行
+
+面向终端用户有两种开箱即用的方式，都**不需要** git / Python / submodule。
+
+### Docker（推荐用于服务器 / 长期运行）
+
+镜像已含全部代码（上游 submodule 一并打包），web 模式开箱即用：
+
+```bash
+docker run -d --name tdm \
+  -p 8080:8080 \
+  -v tdm-data:/data \
+  ghcr.io/meowcracker/tdmconsole:latest
+# 打开 http://<主机>:8080，点 Log in 完成设备码登录
+```
+
+- `-v tdm-data:/data` 把登录凭据与设置持久化到具名卷，容器重建后不丢（**务必带上**，否则重启会重新登录）。
+- 首次登录的设备码也会打进 `docker logs tdm`。
+- 镜像随 `v*` tag 由 GitHub Actions 自动构建推送。
+
+### 单文件可执行程序（无需安装）
+
+三平台预编译单文件，见 [Releases](https://github.com/MeowCracker/TDM-CLI/releases)：
+
+| 平台 | 文件 |
+|---|---|
+| Windows x64 | `tdmconsole-windows-x64.exe` |
+| Linux x64 | `tdmconsole-linux-x64` |
+| macOS (Apple Silicon) | `tdmconsole-macos-arm64` |
+
+下载后直接运行，默认 web 模式（`http://localhost:8080`）；也可 `tdmconsole --mode tui` 等切换。
+
+- **状态文件**（`settings.json` / `cookies.jar` / `tdm-cli.json` / `log.txt`）写在**可执行文件所在目录**——建议放进一个专属文件夹。
+- **macOS**：未签名，首次运行需在「系统设置 → 隐私与安全性」放行，或 `xattr -d com.apple.quarantine tdmconsole-macos-arm64`；运行前 `chmod +x`。
+- **Linux**：运行前 `chmod +x`；单文件对 glibc 版本敏感，用较旧发行版跑更稳（CI 以 ubuntu 构建）。
+
+## 从源码安装（开发者）
 
 ```bash
 git clone --recursive <this-repo-url> TDM-CLI
@@ -96,7 +132,7 @@ cd TDM-CLI
 git submodule update --init --recursive
 ```
 
-本项目用 [uv](https://docs.astral.sh/uv/) 管理与运行 Python（3.10+）。首次运行自动创建虚拟环境并装依赖（`aiohttp`、`truststore`、`textual`、`prompt_toolkit`——GUI 专属的 Pillow/pystray/tkinter 已被 stub，**无头机器无需安装**）。
+本项目用 [uv](https://docs.astral.sh/uv/) 管理与运行 Python（3.10+）。首次运行自动创建虚拟环境并装依赖（`aiohttp`、`truststore`、`textual`——GUI 专属的 Pillow/pystray/tkinter 已被 stub，**无头机器无需安装**）。
 
 ## 快速开始
 
@@ -251,13 +287,24 @@ TDM-CLI/
 │   └── web/              # WebUI 前端（Docker）
 │       ├── __init__.py   #   WebFrontend（启动 aiohttp 服务器）
 │       ├── server.py     #   state snapshot + HTTP/WS + 广播
-│       └── static/       #   拟物风 SPA：index.html / app.css / app.js
+│       ├── i18n.py       #   21 语言目录（复用上游 lang/ + WebUI 特有文案）
+│       └── static/       #   Material Design 3 SPA：index.html / app.css / app.js
 ├── main.py               # 启动器 + CLI 参数 + 模式解析
 ├── Dockerfile            # web 模式容器镜像（uv 基镜像）
+├── tdmconsole.spec       # PyInstaller 单文件打包配置
+├── .github/workflows/    # docker.yml（GHCR 镜像）+ release.yml（三平台单文件）
 ├── test_tui.py           # TUI 回归测试（无头）
 ├── test_repl.py          # REPL + 热切换回归测试（无头）
 ├── test_web.py           # web 服务器 HTTP/WS 回归测试
+├── LICENSE               # GPLv3
+├── NOTICE                # 归属：基于 DevilXD 的 TwitchDropsMiner（MIT）
 ├── pyproject.toml        # uv 项目 + 依赖
 └── run.sh
 ```
+
+## 许可证
+
+本项目以 **GPLv3** 授权（见 [`LICENSE`](LICENSE)）。
+
+基于 DevilXD 的 [TwitchDropsMiner](https://github.com/DevilXD/TwitchDropsMiner)（**MIT**，作为 git submodule 原样引入）。MIT 与 GPLv3 兼容，上游的原始许可证与版权声明完整保留在 `TwitchDropsMiner/LICENSE`，归属见 [`NOTICE`](NOTICE)。
 

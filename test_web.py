@@ -254,6 +254,15 @@ async def main() -> None:
         "cookie-loss guard missing from main.py shutdown path"
     print("PASS regression: cookie-loss guard present in shutdown path")
 
+    # Regression: bootstrap must special-case a PyInstaller-frozen build, or the
+    # single-file executable crashes (no on-disk submodule dir). It must skip the
+    # submodule check / sys.path injection / LANG_PATH override when frozen.
+    boot_src = pathlib.Path(__file__).with_name("tdm_cli").joinpath("bootstrap.py").read_text(encoding="utf8")
+    assert "FROZEN" in boot_src and "_MEIPASS" in boot_src, \
+        "bootstrap.py missing PyInstaller frozen-build handling"
+    assert "if not FROZEN:" in boot_src, "frozen build must skip submodule check/sys.path"
+    print("PASS regression: bootstrap has PyInstaller frozen-build path")
+
     # Regression: every language in _EXTRA must carry the full English key set,
     # and its keys must match a real upstream lang-file stem (else the WebUI
     # falls back to English silently). Guards against half-translated additions.

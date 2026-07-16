@@ -24,6 +24,13 @@ import types
 _HERE = os.path.dirname(os.path.abspath(__file__))
 SUBMODULE_DIR = os.path.normpath(os.path.join(_HERE, os.pardir, "TwitchDropsMiner"))
 
+# When frozen by PyInstaller the upstream modules are compiled into the bundle
+# (importable as top-level names) and its lang/ + our web/static/ are unpacked
+# under sys._MEIPASS. There is no on-disk SUBMODULE_DIR then, so the submodule
+# check, the sys.path injection, and the LANG_PATH override are all skipped —
+# upstream's own _resource_path()/sys._MEIPASS logic already resolves them.
+FROZEN = getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")
+
 _done = False
 
 
@@ -38,13 +45,17 @@ def setup(settings_path: str | None = None, cookies_path: str | None = None) -> 
     global _done
     if _done:
         return
-    if not os.path.isfile(os.path.join(SUBMODULE_DIR, "twitch.py")):
-        raise RuntimeError(
-            f"Upstream submodule not found at {SUBMODULE_DIR}.\n"
-            "Initialise it with:  git submodule update --init --recursive"
-        )
-    if SUBMODULE_DIR not in sys.path:
-        sys.path.insert(0, SUBMODULE_DIR)
+    if not FROZEN:
+        # Source checkout: the upstream code lives in the git submodule, which
+        # must be initialised and placed on sys.path. (When frozen it is already
+        # compiled into the bundle, so both steps are unnecessary.)
+        if not os.path.isfile(os.path.join(SUBMODULE_DIR, "twitch.py")):
+            raise RuntimeError(
+                f"Upstream submodule not found at {SUBMODULE_DIR}.\n"
+                "Initialise it with:  git submodule update --init --recursive"
+            )
+        if SUBMODULE_DIR not in sys.path:
+            sys.path.insert(0, SUBMODULE_DIR)
     _patch_constants(settings_path, cookies_path)
     _stub_gui_deps()
     from tdm_cli import gui as cli_gui
@@ -71,7 +82,11 @@ def _patch_constants(settings_path: str | None, cookies_path: str | None) -> Non
 
     import constants
 
-    constants.LANG_PATH = Path(SUBMODULE_DIR, "lang")
+    if not FROZEN:
+        # Source checkout: repoint the resource lookup at the submodule's lang/.
+        # When frozen, upstream's _resource_path() already resolves lang/ under
+        # sys._MEIPASS, so leave LANG_PATH untouched.
+        constants.LANG_PATH = Path(SUBMODULE_DIR, "lang")
 
     data_dir = os.environ.get("TDM_DATA_DIR")
     if data_dir:

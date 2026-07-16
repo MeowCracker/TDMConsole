@@ -13,6 +13,13 @@ lock.file
 dump.dat
 cache/
 
+# PyInstaller build artifacts
+build/
+dist/
+
 # Any backup files
 *.bak
 *.zip
+
+# MacOS Shits
+*.DS_Store
