@@ -58,7 +58,19 @@ jobs:
         if: runner.os != 'Windows'
         run: ./dist/${{ matrix.asset }} --version
 
+      # Always publish the binary as a workflow artifact — lets a manual
+      # (workflow_dispatch) run be downloaded and tested without a tag/Release.
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: dist/${{ matrix.asset }}
+          if-no-files-found: error
+
+      # Attach to the GitHub Release only on a version-tag push — a Release
+      # needs a tag, so this step is skipped for manual runs (which have none).
       - name: Upload as Release asset
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: dist/${{ matrix.asset }}

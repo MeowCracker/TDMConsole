@@ -51,6 +51,18 @@ for asset in static_dir.iterdir():
     if asset.is_file():
         datas.append((str(asset), "tdm_cli/web/static"))
 
+# App icon (executable icon), set per-platform below. The web UI's browser-tab
+# favicon.png already lives in tdm_cli/web/static/ and is collected by the loop
+# above, so it works in both source (`uv run`) and frozen modes.
+ASSETS = ROOT / "assets"
+if sys.platform == "win32":
+    _icon = ASSETS / "favicon.ico"
+elif sys.platform == "darwin":
+    _icon = ASSETS / "favicon.icns"
+else:
+    _icon = ASSETS / "favicon.png"   # Linux: PyInstaller accepts a PNG
+app_icon: str | None = str(_icon) if _icon.is_file() else None
+
 # Textual ships runtime data (tree-sitter grammars, py.typed); pull it all in.
 tx_datas, tx_binaries, tx_hidden = collect_all("textual")
 datas += tx_datas
@@ -101,4 +113,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=app_icon,
 )

@@ -46,11 +46,14 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest
 
+      # Push only on a version-tag build. A manual (workflow_dispatch) run just
+      # builds to validate the Dockerfile — it does not publish an image, so it
+      # can't clobber :latest from an arbitrary master state.
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
+          push: ${{ startsWith(github.ref, 'refs/tags/') }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
