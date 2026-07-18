@@ -69,6 +69,10 @@ $ uv run main.py
 
 ### Docker 运行
 
+> [!important]
+>
+> 更推荐自己拉源码跑，这样可以自己更新内核
+
 ```bash
 $ docker run --name TDMConsole \
 	--restart unless-stopped \
@@ -76,6 +80,12 @@ $ docker run --name TDMConsole \
 	-p 8080:8080 \
 	ghcr.io/meowcracker/tdmconsole
 ```
+
+## 为什么做这个？
+
+最开始我用的是 TDM 的 GUI 版本，也就是 DevilXD 的那个版本，但是这个版本硬性要求有 GUI 环境，而当我把这东西挪到服务器后，这东西就不适用了，就算跑在 Docker 里，也需要用类似于 baseimage-gui 这种镜像作为基底去承托，说实话，有点消耗过大，特别是在服务器资源本身较少的情况下，所以后面我转向了 rangermix 的 Webui 版本，但是这个 webui 版本有时候会更新不及时，导致整个挂宝就不动了。
+
+所以我打算自己弄一个自己的，因为想到了 submodule 的用法，所以就拟定我的这个设计为核心加外部程序的这么一个设计，然后在 Claude 和 GPT 的帮助下，这东西就出来了
 
 ## Credit
 
