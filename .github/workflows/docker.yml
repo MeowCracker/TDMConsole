@@ -3,8 +3,6 @@ name: Docker image
 # Build and publish the web-mode container to GHCR on version tags.
 # Consumers then just:  docker run -d -p 8080:8080 -v tdm-data:/data ghcr.io/<owner>/tdmconsole
 on:
-  push:
-    tags: ["v*"]
   workflow_dispatch: {}
 
 permissions:

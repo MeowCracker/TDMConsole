@@ -3,9 +3,6 @@ name: Release binaries
 # Build platform-native release assets. macOS puts the GUI .app inside the DMG;
 # the standalone CLI is distributed as a tar.gz archive.
 on:
-  push:
-    branches: [master]
-    tags: ["v*"]
   workflow_dispatch: {}
 
 permissions:
