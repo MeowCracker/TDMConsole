@@ -36,9 +36,16 @@
 
 ### 二进制产物
 
-直接通过 Github Release 页面下载最新的二进制产物，注意选对系统，下载完了以后解压
+直接通过 GitHub Release 页面下载最新的二进制产物，注意选择对应的系统和架构。
 
-程序分为四种可交互模式 WebUI、REPL、TUI、GUI 和纯日志的 headless 模式，默认采用的是 WebUI 模式
+macOS 同时提供三种产物：`tdmconsole-macos-*` 是命令行程序，
+`TDMConsole-macos-*.app.zip` 是 `.app` 压缩包，`TDMConsole-macos-*.dmg`
+是可将应用拖入 Applications 的安装镜像。
+
+程序分为 WebUI、REPL、TUI、GUI 四种可交互模式和纯日志的 headless 模式。
+命令行程序在没有参数时默认启动 WebUI；macOS `.app` 在没有指定 `--mode`
+时默认启动原生 GUI。`.app` 的运行数据保存在
+`~/Library/Application Support/TDMConsole`，不会写入应用包内部。
 
 在命令行调用即可启动程序（注：根据平台的不同，这里用到的程序名称也不同）
 
@@ -63,4 +70,3 @@ $ uv run main.py
 其中，`git submodule update --remote TwitchDropsMiner` 用于跟原来的 TDM 进行同步，如果你不打算更新的话可以不用的
 
 ### Docker 运行
-

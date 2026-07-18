@@ -1,8 +1,7 @@
 name: Release binaries
 
-# On a version tag, build a single-file executable for each platform with
-# PyInstaller (upstream submodule + lang/ + web/static all bundled in) and
-# attach them to the GitHub Release.
+# On a version tag, build a single-file CLI executable for each platform. macOS
+# additionally publishes a GUI .app archive and an installable DMG.
 on:
   push:
     tags: ["v*"]
@@ -20,12 +19,31 @@ jobs:
           - os: windows-latest
             asset: tdmconsole-windows-x64.exe
             build_name: tdmconsole.exe
+            artifact_name: tdmconsole-windows-x64
+            artifact_paths: dist/tdmconsole-windows-x64.exe
           - os: ubuntu-22.04            # older glibc → wider Linux compatibility
             asset: tdmconsole-linux-x64
             build_name: tdmconsole
+            artifact_name: tdmconsole-linux-x64
+            artifact_paths: dist/tdmconsole-linux-x64
+          - os: macos-15-intel
+            asset: tdmconsole-macos-x64
+            build_name: tdmconsole
+            macos_suffix: macos-x64
+            artifact_name: tdmconsole-macos-x64
+            artifact_paths: |
+              dist/tdmconsole-macos-x64
+              dist/TDMConsole-macos-x64.app.zip
+              dist/TDMConsole-macos-x64.dmg
           - os: macos-14                # Apple Silicon runner
             asset: tdmconsole-macos-arm64
             build_name: tdmconsole
+            macos_suffix: macos-arm64
+            artifact_name: tdmconsole-macos-arm64
+            artifact_paths: |
+              dist/tdmconsole-macos-arm64
+              dist/TDMConsole-macos-arm64.app.zip
+              dist/TDMConsole-macos-arm64.dmg
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout (with submodule — PyInstaller bundles the upstream code)
@@ -39,18 +57,24 @@ jobs:
       - name: Update engine submodule to latest upstream
         run: git submodule update --remote --recursive TwitchDropsMiner
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.12"
+          enable-cache: true
 
-      - name: Install dependencies + PyInstaller
+      - name: Install Python and locked dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install pyinstaller aiohttp "textual>=8.2.8" truststore yarl Pillow pystray
+          uv python install 3.12
+          uv sync --frozen --group build --python 3.12
 
-      - name: Build single-file executable
-        run: pyinstaller --clean --noconfirm tdmconsole.spec
+      - name: Install DMG tooling
+        if: runner.os == 'macOS'
+        uses: gerlero/brew-install@v1
+        with:
+          packages: create-dmg
+
+      - name: Build executable and macOS app
+        run: uv run pyinstaller --clean --noconfirm tdmconsole.spec
 
       - name: Rename to platform asset name (unix)
         if: runner.os != 'Windows'
@@ -59,6 +83,12 @@ jobs:
       - name: Rename to platform asset name (windows)
         if: runner.os == 'Windows'
         run: Move-Item "dist/${{ matrix.build_name }}" "dist/${{ matrix.asset }}"
+
+      - name: Package signed macOS app and DMG
+        if: runner.os == 'macOS'
+        run: |
+          chmod +x scripts/package-macos.sh
+          ./scripts/package-macos.sh "${{ matrix.macos_suffix }}"
 
       - name: Smoke test (--version must run from the frozen binary)
         if: runner.os != 'Windows'
@@ -69,8 +99,8 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.asset }}
-          path: dist/${{ matrix.asset }}
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_paths }}
           if-no-files-found: error
 
       # Attach to the GitHub Release only on a version-tag push — a Release
@@ -79,5 +109,5 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/${{ matrix.asset }}
+          files: ${{ matrix.artifact_paths }}
           fail_on_unmatched_files: true

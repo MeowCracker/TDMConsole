@@ -2,11 +2,25 @@ from __future__ import annotations
 
 # Keep PyInstaller/multiprocessing happy if this is ever frozen.
 from multiprocessing import freeze_support
+from pathlib import Path
+
+
+def _is_macos_app_bundle(executable: Path) -> bool:
+    """Return whether *executable* is inside a standard macOS app bundle."""
+    try:
+        return (
+            executable.parents[0].name == "MacOS"
+            and executable.parents[1].name == "Contents"
+            and executable.parents[2].suffix == ".app"
+        )
+    except IndexError:
+        return False
 
 
 if __name__ == "__main__":
     freeze_support()
 
+    import os
     import sys
     import signal
     import asyncio
@@ -14,7 +28,6 @@ if __name__ == "__main__":
     import argparse
     import warnings
     import traceback
-    from pathlib import Path
 
     # Parse args first: -c/--config and --jar must be known before upstream
     # modules are imported (they bind SETTINGS_PATH/COOKIES_PATH at import time).
@@ -133,6 +146,15 @@ if __name__ == "__main__":
     # 'tray' is a GUI-only concept, but Settings reads it off the args object.
     args.tray = False
 
+    running_macos_app = getattr(sys, "frozen", False) and _is_macos_app_bundle(
+        Path(sys.executable)
+    )
+    if running_macos_app:
+        os.environ.setdefault(
+            "TDM_DATA_DIR",
+            str(Path.home() / "Library" / "Application Support" / "TDMConsole"),
+        )
+
     # Two-stage bootstrap. Stage 1 (setup_paths) puts the submodule on sys.path
     # and repoints constants — enough to import `constants`/`version` and read
     # the saved mode preference. Stage 2 (setup) optionally installs the GUI
@@ -177,15 +199,16 @@ if __name__ == "__main__":
     # installs the CLI GUI shim for every mode EXCEPT `gui`, where upstream's
     # native tkinter window is used as-is.
     #
-    # The mode is NOT persisted: startup honours only `--mode`, else the default
-    # (web). This keeps `docker run` / a bare launch on web every time, instead
-    # of silently sticking to whatever a `--mode`/`/switch-mode`/wizard run last
-    # left behind. `/switch-mode` still swaps the live frontend, just for the
-    # current process.
+    # The mode is NOT persisted: startup honours `--mode`; a frozen executable
+    # inside TDMConsole.app defaults to the native GUI, while every other bare
+    # launch defaults to web. This keeps CLI and Docker behavior unchanged.
+    # `/switch-mode` still swaps the live frontend for the current process.
     from tdm_cli import console, prefs
 
     if args._mode is not None:
         mode = args._mode
+    elif running_macos_app:
+        mode = "gui"
     else:
         mode = prefs.DEFAULT_MODE
     if mode in ("tui", "repl") and not console.INTERACTIVE:

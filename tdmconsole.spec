@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""PyInstaller spec for TDMConsole — a single-file, self-contained executable.
+"""PyInstaller spec for TDMConsole command-line and macOS app builds.
 
 Bundles everything the app needs to run with no external files:
   * the outer ``tdm_cli`` package (all four frontends);
@@ -12,10 +12,12 @@ Bundles everything the app needs to run with no external files:
 One-file mode (``EXE`` with the data/binary TOCs inlined, no ``COLLECT``): the
 launcher unpacks to a temp dir at startup and cleans up on exit, so the user
 only ever sees a single executable. Runtime *state* (settings.json, cookies.jar,
-log.txt) is written next to the executable — see ``constants.WORKING_DIR``.
+log.txt) is written next to the CLI executable; the macOS app uses
+``~/Library/Application Support/TDMConsole``.
 
-Build:  pyinstaller tdmconsole.spec
+Build:  uv run pyinstaller tdmconsole.spec
 Output: dist/tdmconsole  (or dist/tdmconsole.exe on Windows)
+        dist/TDMConsole.app  (macOS only, defaults to native GUI mode)
 """
 from __future__ import annotations
 
@@ -31,6 +33,8 @@ SUBMODULE = ROOT / "TwitchDropsMiner"
 for p in (str(ROOT), str(SUBMODULE)):
     if p not in sys.path:
         sys.path.insert(0, p)
+
+from tdm_cli import __version__ as APP_VERSION
 
 if not (SUBMODULE / "twitch.py").is_file():
     raise SystemExit(
@@ -133,3 +137,46 @@ exe = EXE(
     entitlements_file=None,
     icon=app_icon,
 )
+
+# macOS also gets a normal windowed app bundle. It reuses the same Analysis and
+# PYZ as the CLI executable, but keeps binaries outside the bootloader so BUNDLE
+# can place them in the standard Contents/Frameworks layout.
+if sys.platform == "darwin":
+    from PyInstaller.building.osx import BUNDLE
+
+    entitlements = ASSETS / "entitlements.plist"
+    if not entitlements.is_file():
+        raise SystemExit(f"Missing macOS entitlements: {entitlements}")
+
+    app_exe = EXE(
+        pyz,
+        a.scripts,
+        [],
+        name="TDMConsole",
+        exclude_binaries=True,
+        debug=False,
+        bootloader_ignore_signals=False,
+        strip=False,
+        upx=False,
+        console=False,
+        disable_windowed_traceback=False,
+        argv_emulation=False,
+        target_arch=None,
+        codesign_identity=None,
+        entitlements_file=str(entitlements),
+        icon=app_icon,
+    )
+
+    app = BUNDLE(
+        app_exe,
+        a.binaries,
+        a.datas,
+        name="TDMConsole.app",
+        icon=app_icon,
+        version=APP_VERSION,
+        bundle_identifier="com.github.meowcracker.tdmconsole",
+        info_plist={
+            "LSApplicationCategoryType": "public.app-category.utilities",
+            "NSHighResolutionCapable": True,
+        },
+    )

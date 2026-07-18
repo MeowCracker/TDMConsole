@@ -18,3 +18,8 @@ dependencies = [
 [tool.uv]
 # This is an application, not an installable library — don't try to build it.
 package = false
+
+[dependency-groups]
+build = [
+    "pyinstaller>=6.0,<7.0",
+]
