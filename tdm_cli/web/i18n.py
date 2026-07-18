@@ -28,6 +28,7 @@ _EXTRA: dict[str, dict[str, str]] = {
     "English": {
         "app.tagline": "Twitch Drops Miner",
         "btn.reload": "Reload",
+        "btn.update": "Update engine",
         "btn.login": "Log in",
         "btn.online": "Online",
         "btn.games": "Games",
@@ -71,6 +72,7 @@ _EXTRA: dict[str, dict[str, str]] = {
     "简体中文": {
         "app.tagline": "Twitch 掉宝挖掘器",
         "btn.reload": "重新加载",
+        "btn.update": "更新内核",
         "btn.login": "登录",
         "btn.online": "已登录",
         "btn.games": "游戏",
@@ -113,6 +115,7 @@ _EXTRA: dict[str, dict[str, str]] = {
     "繁體中文": {
         "app.tagline": "Twitch 掉寶挖掘器",
         "btn.reload": "重新載入",
+        "btn.update": "更新核心",
         "btn.login": "登入",
         "btn.online": "已登入",
         "btn.games": "遊戲",

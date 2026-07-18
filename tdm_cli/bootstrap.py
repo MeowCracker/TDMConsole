@@ -22,7 +22,17 @@ import sys
 import types
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-SUBMODULE_DIR = os.path.normpath(os.path.join(_HERE, os.pardir, "TwitchDropsMiner"))
+_BUNDLED_SUBMODULE_DIR = os.path.normpath(
+    os.path.join(_HERE, os.pardir, "TwitchDropsMiner")
+)
+_EXTERNAL_SUBMODULE_DIR = os.environ.get("TDM_ENGINE_DIR")
+if (
+    _EXTERNAL_SUBMODULE_DIR
+    and os.path.isfile(os.path.join(_EXTERNAL_SUBMODULE_DIR, "twitch.py"))
+):
+    SUBMODULE_DIR = os.path.abspath(os.path.expanduser(_EXTERNAL_SUBMODULE_DIR))
+else:
+    SUBMODULE_DIR = _BUNDLED_SUBMODULE_DIR
 
 # When frozen by PyInstaller the upstream modules are compiled into the bundle
 # (importable as top-level names) and its lang/ + our web/static/ are unpacked
@@ -47,9 +57,8 @@ def setup_paths(settings_path: str | None = None, cookies_path: str | None = Non
     if _paths_done:
         return
     if not FROZEN:
-        # Source checkout: the upstream code lives in the git submodule, which
-        # must be initialised and placed on sys.path. (When frozen it is already
-        # compiled into the bundle, so both steps are unnecessary.)
+        # Source checkout uses the git submodule; Docker may use an updated
+        # snapshot under TDM_ENGINE_DIR. Both are regular import directories.
         if not os.path.isfile(os.path.join(SUBMODULE_DIR, "twitch.py")):
             raise RuntimeError(
                 f"Upstream submodule not found at {SUBMODULE_DIR}.\n"

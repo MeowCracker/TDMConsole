@@ -9,14 +9,14 @@ Two independent version sources:
 
 The engine commit hash is resolved in this order:
 
-1. ``tdm_cli/_build_info.py`` — written at build time (Docker / PyInstaller /
-   release CI) by ``scripts/write_build_info.py``. This is the only source that
-   works once frozen or inside a container, where no ``.git`` exists.
+1. The marker in an updated Docker engine snapshot.
 2. Live ``git`` in a source checkout (developer running from the repo).
-3. ``"unknown"`` — nothing else worked (should not happen for a real release).
+3. ``tdm_cli/_build_info.py`` — written at image/executable build time.
+4. ``"unknown"`` — nothing else worked (should not happen for a real release).
 """
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -24,6 +24,15 @@ from tdm_cli import __version__ as APP_VERSION
 
 _HERE = Path(__file__).resolve().parent
 _SUBMODULE = _HERE.parent / "TwitchDropsMiner"
+
+
+def _active_engine_dir() -> Path:
+    external = os.environ.get("TDM_ENGINE_DIR")
+    if external:
+        candidate = Path(external).expanduser()
+        if (candidate / "twitch.py").is_file():
+            return candidate
+    return _SUBMODULE
 
 
 def engine_version() -> str:
@@ -48,11 +57,12 @@ def _build_info_hash() -> str | None:
 
 def _git_hash() -> str | None:
     """Short commit hash of the submodule via live git (source checkout only)."""
-    if not (_SUBMODULE / ".git").exists() and not (_SUBMODULE / "twitch.py").is_file():
+    engine_dir = _active_engine_dir()
+    if not (engine_dir / ".git").exists() and not (engine_dir / "twitch.py").is_file():
         return None
     try:
         out = subprocess.run(
-            ["git", "-C", str(_SUBMODULE), "rev-parse", "--short", "HEAD"],
+            ["git", "-C", str(engine_dir), "rev-parse", "--short", "HEAD"],
             capture_output=True, text=True, timeout=5,
         )
         h = out.stdout.strip()
@@ -61,9 +71,18 @@ def _git_hash() -> str | None:
         return None
 
 
+def _snapshot_hash() -> str | None:
+    marker = _active_engine_dir() / ".tdm-engine-version"
+    try:
+        value = marker.read_text(encoding="ascii").strip()
+    except OSError:
+        return None
+    return value[:7] if value else None
+
+
 def engine_commit() -> str:
     """Short commit hash the engine submodule is pinned to."""
-    return _build_info_hash() or _git_hash() or "unknown"
+    return _snapshot_hash() or _git_hash() or _build_info_hash() or "unknown"
 
 
 def version_line() -> str:

@@ -14,7 +14,7 @@ when their revision counter moves (or every ~5 s as a safety net).
 
 Interactions:
   q / Ctrl+C  quit          g  game priority & exclusions
-  r           reload        s  settings
+  r           reload        u  update engine        s  settings
   Enter (channels table)    pin + switch to the selected channel
   Esc                       unpin (auto-selection resumes)
 """
@@ -54,6 +54,7 @@ class MinerApp(App[None]):
         Binding("ctrl+c", "quit_miner", "Quit", show=False),
         Binding("l", "login", "Login"),
         Binding("r", "reload", "Reload"),
+        Binding("u", "update_engine", "Update"),
         Binding("g", "games", "Games"),
         Binding("s", "settings", "Settings"),
         Binding("escape", "unpin", "Unpin", show=False),
@@ -279,6 +280,10 @@ class MinerApp(App[None]):
     def action_reload(self) -> None:
         self._m.print("Reload requested...")
         self._m._twitch.change_state(State.RESTART)
+
+    def action_update_engine(self) -> None:
+        if not self._m.request_engine_update():
+            self._m.print("An engine update is already running.")
 
     def action_games(self) -> None:
         if not isinstance(self.screen, (GamesScreen, SettingsScreen)):

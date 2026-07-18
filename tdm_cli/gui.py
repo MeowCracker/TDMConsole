@@ -563,6 +563,8 @@ class GUIManager:
         self.mode = ACTIVE_MODE
         self.frontend = make_frontend(self.mode, self)
         self._switch_task: asyncio.Task[None] | None = None
+        self._engine_update_task: asyncio.Task[None] | None = None
+        self._restart_requested = False
 
         # Components (order-independent; none touch a display)
         self.status = StatusBar(self)
@@ -588,6 +590,14 @@ class GUIManager:
     @property
     def close_requested(self) -> bool:
         return self._close_requested.is_set()
+
+    @property
+    def restart_requested(self) -> bool:
+        return self._restart_requested
+
+    @property
+    def engine_update_running(self) -> bool:
+        return self._engine_update_task is not None
 
     async def wait_until_closed(self) -> None:
         # Doubles as an interruptible sleep: twitch.py awaits this with a timeout
@@ -645,6 +655,40 @@ class GUIManager:
             self.print(f"Cannot switch to {mode} mode: no interactive terminal attached.")
             return
         self._switch_task = asyncio.create_task(self._switch_frontend(mode))
+
+    def request_engine_update(self) -> bool:
+        """Start one non-blocking engine update shared by every CLI frontend."""
+        if self._engine_update_task is not None:
+            return False
+        self._update_log("Checking for engine updates...", "info")
+        self._engine_update_task = asyncio.create_task(self._update_engine())
+        return True
+
+    def _update_log(self, text: str, style: str = "") -> None:
+        self.state.add_log(text, style)
+        self.frontend.log(text, style)
+
+    async def _update_engine(self) -> None:
+        from tdm_cli.updater import EngineUpdateError, update_engine
+
+        try:
+            result = await asyncio.to_thread(update_engine)
+            if not result.changed:
+                self._update_log(result.message, "success")
+                return
+            self._update_log(result.message, "success")
+            self._update_log("Restarting to load the updated engine...", "notify")
+            self._restart_requested = True
+            # Give terminal and WebSocket frontends one render cycle to show the
+            # result before graceful shutdown starts.
+            await asyncio.sleep(0.75)
+            self.close()
+        except EngineUpdateError as exc:
+            self._update_log(f"Engine update failed: {exc}", "error")
+        except Exception as exc:  # defensive: keep the miner alive
+            self._update_log(f"Unexpected engine update error: {exc}", "error")
+        finally:
+            self._engine_update_task = None
 
     async def _switch_frontend(self, mode: str) -> None:
         try:

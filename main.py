@@ -51,6 +51,7 @@ if __name__ == "__main__":
         _mode: str | None
         _host: str | None
         _port: int | None
+        _update: bool
         check_contract: bool
 
         @property
@@ -130,6 +131,10 @@ if __name__ == "__main__":
         "--dump", action="store_true", help="dump some payloads for debugging"
     )
     parser.add_argument(
+        "--update", dest="_update", action="store_true",
+        help="update the TwitchDropsMiner engine before starting (source/Docker only)",
+    )
+    parser.add_argument(
         "--check-contract", action="store_true",
         help="verify the CLI gui shim matches the upstream submodule, then exit",
     )
@@ -154,6 +159,18 @@ if __name__ == "__main__":
             "TDM_DATA_DIR",
             str(Path.home() / "Library" / "Application Support" / "TDMConsole"),
         )
+
+    # The updater must run before bootstrap imports any upstream module. Source
+    # checkouts update the git submodule; Docker installs an external snapshot
+    # under TDM_ENGINE_DIR and bootstrap selects it below.
+    if args._update:
+        from tdm_cli.updater import EngineUpdateError, update_engine
+
+        try:
+            print(update_engine().message, flush=True)
+        except EngineUpdateError as exc:
+            print(f"Engine update failed: {exc}", file=sys.stderr, flush=True)
+            sys.exit(5)
 
     # Two-stage bootstrap. Stage 1 (setup_paths) puts the submodule on sys.path
     # and repoints constants — enough to import `constants`/`version` and read
@@ -306,7 +323,7 @@ if __name__ == "__main__":
 
     cli_gui.ACTIVE_MODE = mode
 
-    async def main() -> None:
+    async def main() -> tuple[int, bool]:
         # Language
         try:
             _.set_language(settings.language)
@@ -375,7 +392,7 @@ if __name__ == "__main__":
             client.save(force=True)
             client.gui.stop()
             client.gui.close_window()
-            sys.exit(exit_status)
+            return exit_status, False
         if not client.gui.close_requested:
             # Terminated by an error rather than a user request.
             client.print(_("status", "terminated"))
@@ -392,16 +409,23 @@ if __name__ == "__main__":
             # error stays visible in the plain terminal.
             for entry in list(client.gui.state.log_lines)[-15:]:
                 print(f"{entry.stamp}: {entry.text}")
-        sys.exit(exit_status)
+        return exit_status, bool(getattr(client.gui, "restart_requested", False))
 
     file = None
+    result: tuple[int, bool] | None = None
     try:
         # Single-instance lock.
         success, file = lock_file(LOCK_PATH)
         if not success:
             print("Another instance is already running.", file=sys.stderr)
             sys.exit(3)
-        asyncio.run(main())
+        result = asyncio.run(main())
     finally:
         if file is not None:
             file.close()
+    if result is not None:
+        exit_status, restart_requested = result
+        if restart_requested:
+            restart_args = [arg for arg in sys.argv if arg != "--update"]
+            os.execv(sys.executable, [sys.executable, *restart_args])
+        sys.exit(exit_status)

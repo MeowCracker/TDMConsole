@@ -29,7 +29,7 @@ logger = logging.getLogger("TwitchDrops")
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 # Shown in the WebUI footer under the Settings button (source & docs link).
-REPO_URL = "https://github.com/MeowCracker/TDM-CLI"
+REPO_URL = "https://github.com/MeowCracker/TDMConsole"
 
 
 def snapshot(manager: GUIManager) -> dict[str, Any]:
@@ -42,6 +42,7 @@ def snapshot(manager: GUIManager) -> dict[str, Any]:
     return {
         "status": s.status,
         "mode": manager.mode,
+        "engineUpdating": manager.engine_update_running,
         "login": {
             "available": s.login_available,
             "prompt": s.login_prompt,

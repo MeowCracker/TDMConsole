@@ -208,6 +208,8 @@ function render(s) {
   else if (s.watching && s.watching.channel) led.dataset.state = "watching";
   else led.dataset.state = "idle";
 
+  $("btn-update").disabled = Boolean(s.engineUpdating);
+
   // user plate
   const login = s.login || {};
   $("user-plate").textContent =
@@ -643,6 +645,7 @@ function openSettings() {
 
 /* ---- wire up controls --------------------------------------------------- */
 $("btn-reload").onclick = () => send("/reload");
+$("btn-update").onclick = () => send("/update");
 $("btn-login").onclick = () => send("/login");
 $("login-cta").onclick = () => send("/login");
 $("btn-games").onclick = () => { if (state) openGames(); };

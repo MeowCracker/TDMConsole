@@ -26,6 +26,7 @@ COMMANDS: dict[str, str] = {
     "/unpin": "resume automatic channel selection",
     "/proxy": "/proxy <url|clear> — set or clear the proxy (reloads)",
     "/reload": "re-fetch inventory and channels",
+    "/update": "update the engine and restart (source/Docker only)",
     "/switch-mode": "/switch-mode tui|repl|headless — change interface mode",
     "/login": "show the pending device-code login prompt again",
     "/quit": "stop mining and exit",
@@ -228,6 +229,13 @@ class CommandProcessor:
     def _cmd_reload(self, args: list[str]) -> None:
         self._m.print("Reload requested...")
         self._m._twitch.change_state(self._state_enum().RESTART)
+
+    def _cmd_update(self, args: list[str]) -> None:
+        if args:
+            self._out("Usage: /update", "warn")
+            return
+        if not self._m.request_engine_update():
+            self._out("An engine update is already running.", "warn")
 
     def _cmd_switch_mode(self, args: list[str]) -> None:
         from tdm_cli.prefs import MODES

@@ -37,6 +37,7 @@ RUN printf '"""Generated at build time (Docker) — do not edit."""\nENGINE_COMM
 # All runtime state (settings.json, cookies.jar, tdm-cli.json, log.txt, cache/)
 # is relocated to /data via TDM_DATA_DIR, so a mounted volume persists it.
 ENV TDM_DATA_DIR=/data \
+    TDM_ENGINE_DIR=/data/TwitchDropsMiner \
     TDM_WEB_HOST=0.0.0.0 \
     TDM_WEB_PORT=8080 \
     PATH="/app/.venv/bin:$PATH"

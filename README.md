@@ -81,6 +81,20 @@ $ docker run --name TDMConsole \
 	ghcr.io/meowcracker/tdmconsole
 ```
 
+## 内核更新
+
+> [!important]
+>
+> 仅 Docker 运行/源码运行时可用
+
+通过 Docker 或者源码运行时，由于可操作性较高，于是可以对内核进行更新，更新的操作具体如下
+
+- WebUI：点击操作区的「更新内核」按钮
+- REPL：使用 `/update` 命令
+- TUI：按下快捷键 <kbd>u</kbd>
+
+操作后，程序会检查内核是否有新版本，并尝试更新
+
 ## 为什么做这个？
 
 最开始我用的是 TDM 的 GUI 版本，也就是 DevilXD 的那个版本，但是这个版本硬性要求有 GUI 环境，而当我把这东西挪到服务器后，这东西就不适用了，就算跑在 Docker 里，也需要用类似于 baseimage-gui 这种镜像作为基底去承托，说实话，有点消耗过大，特别是在服务器资源本身较少的情况下，所以后面我转向了 rangermix 的 Webui 版本，但是这个 webui 版本有时候会更新不及时，导致整个挂宝就不动了。
