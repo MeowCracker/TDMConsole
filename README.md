@@ -101,6 +101,28 @@ $ docker run --name TDMConsole \
 
 所以我打算自己弄一个自己的，因为想到了 submodule 的用法，所以就拟定我的这个设计为核心加外部程序的这么一个设计，然后在 Claude 和 GPT 的帮助下，这东西就出来了
 
+## 常见问题
+
+### MacOS 提示已损坏
+
+![](https://img.bili33.top/file/1784388788742_CleanShot_2026-07-18_23.32.45_2x.png)
+
+通过下面的命令移除隔离属性即可，MacOS 用的多的人都知道这是啥
+
+```bash
+$ sudo xattr -rd com.apple.quarantine /Applications/TDMConsole.app
+```
+
+### MacOS 提示「即将结束对 Intel 芯片 App 的支持」
+
+![](https://img.bili33.top/file/1784389096741_CleanShot_2026-07-18_23.35.28_2x.png)
+
+你在用 M 系列芯片的 Mac 电脑，不要下 `x64`！！！
+
+你应该认准文件名里面有 `arm64` 的文件进行下载
+
+![](https://img.bili33.top/file/1784389088749_CleanShot_2026-07-18_23.36.45_2x.png)
+
 ## Credit
 
 - https://github.com/DevilXD/TwitchDropsMiner
