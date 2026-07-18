@@ -90,14 +90,6 @@ def run_wizard(settings_path: Path) -> int:
     # 6. Connection quality
     quality = _ask_int("Connection quality, 1 (good) - 6 (bad network)", 1, 1, 6)
 
-    # 7. Interface mode
-    print("Interface mode (when run in a terminal):")
-    print("  1. Full-screen dashboard (TUI)")
-    print("  2. Command REPL (Claude-Code style, /commands)")
-    print("  3. Web UI (browser dashboard, for Docker/servers)")
-    print("  4. Plain log lines (headless)")
-    mode_name = {1: "tui", 2: "repl", 3: "web", 4: "headless"}[_ask_int("Interface", 1, 1, 4)]
-
     data = dict(default_settings)
     data.update(
         language=language,
@@ -110,10 +102,6 @@ def run_wizard(settings_path: Path) -> int:
     settings_path.parent.mkdir(parents=True, exist_ok=True)
     json_save(settings_path, data, sort=True)
 
-    from tdm_cli import prefs
-
-    prefs.save_mode(mode_name)
-
     print(f"\nWritten: {settings_path}")
     print(f"  language           = {language}")
     print(f"  proxy              = {proxy_raw or '(none)'}")
@@ -121,6 +109,6 @@ def run_wizard(settings_path: Path) -> int:
     print(f"  exclude            = {exclude or '(none)'}")
     print(f"  priority_mode      = {mode.name}")
     print(f"  connection_quality = {quality}")
-    print(f"  interface mode     = {mode_name}  (tdm-cli.json)")
-    print("\nStart mining with:  uv run main.py")
+    print("\nStart mining with:  uv run main.py  (default mode: web)")
+    print("Pick another interface with --mode tui|repl|web|gui|headless.")
     return 0

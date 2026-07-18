@@ -33,7 +33,8 @@ from textual.containers import Horizontal, Vertical
 from textual.suggester import SuggestFromList
 from textual.widgets import Input, RichLog, Rule, Static
 
-from version import __version__
+from tdm_cli import __version__
+from tdm_cli.versioning import engine_version, engine_commit
 
 from tdm_cli.commands import COMMANDS, CommandProcessor
 from tdm_cli.tui.screens import LoginScreen
@@ -188,7 +189,7 @@ class ReplApp(App[None]):
         self.query_one("#output", RichLog).write(
             Panel(
                 grid,
-                title=f"TDMConsole v{__version__}",
+                title=f"TDMConsole v{__version__}  ·  engine {engine_version()} @ {engine_commit()}",
                 title_align="left",
                 box=ROUNDED,
                 border_style="cyan",

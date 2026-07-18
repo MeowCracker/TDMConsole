@@ -33,6 +33,12 @@ jobs:
         with:
           submodules: recursive
 
+      # Pull the engine submodule up to the latest upstream commit so releases
+      # ship the newest miner. The spec freezes this commit's short hash into
+      # the binary (shown by --version). Windows needs the same git command.
+      - name: Update engine submodule to latest upstream
+        run: git submodule update --remote --recursive TwitchDropsMiner
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -41,7 +47,7 @@ jobs:
       - name: Install dependencies + PyInstaller
         run: |
           python -m pip install --upgrade pip
-          pip install pyinstaller aiohttp "textual>=8.2.8" truststore yarl
+          pip install pyinstaller aiohttp "textual>=8.2.8" truststore yarl Pillow pystray
 
       - name: Build single-file executable
         run: pyinstaller --clean --noconfirm tdmconsole.spec

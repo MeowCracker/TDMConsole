@@ -4,3 +4,9 @@ All code in this package lives *outside* the upstream ``TwitchDropsMiner`` git
 submodule. The submodule is used pristine; we swap its tkinter ``GUIManager``
 for a terminal implementation at import time (see :mod:`tdm_cli.bootstrap`).
 """
+
+# TDMConsole's OWN version — independent of the bundled mining engine
+# (TwitchDropsMiner, whose version lives in the submodule's version.py). See
+# :mod:`tdm_cli.versioning` for how both are reported side by side.
+__version__ = "0.1.0"
+

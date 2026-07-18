@@ -8,6 +8,11 @@ dependencies = [
     "aiohttp>=3.9,<4.0",
     "textual>=8.2.8",
     "truststore",
+    # GUI mode (--mode gui) runs upstream's native tkinter window, which needs
+    # these; the other four frontends never import them (bootstrap stubs them
+    # out when absent). tkinter itself ships with CPython.
+    "Pillow",
+    "pystray",
 ]
 
 [tool.uv]

@@ -20,6 +20,15 @@ jobs:
         with:
           submodules: recursive
 
+      # Pull the engine submodule to the latest upstream master so each release
+      # ships the freshest miner, then expose its short commit hash for the
+      # build (baked into the image via a build-arg — the image has no .git).
+      - name: Update engine submodule to latest upstream
+        id: engine
+        run: |
+          git submodule update --remote TwitchDropsMiner
+          echo "hash=$(git -C TwitchDropsMiner rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -54,6 +63,8 @@ jobs:
         with:
           context: .
           push: ${{ startsWith(github.ref, 'refs/tags/') }}
+          build-args: |
+            ENGINE_COMMIT=${{ steps.engine.outputs.hash }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha

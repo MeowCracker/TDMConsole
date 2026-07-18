@@ -200,14 +200,16 @@ class WebServer:
 
     async def _handle_meta(self, request: web.Request) -> web.StreamResponse:
         from tdm_cli.web import i18n
+        from tdm_cli import versioning
 
-        try:
-            from version import __version__
-        except Exception:
-            __version__ = "?"
+        info = versioning.version_info()
         return web.json_response(
             {
-                "version": __version__,
+                # app version (TDMConsole itself) and the bundled engine
+                # (TwitchDropsMiner) version + pinned commit, kept separate.
+                "version": info["app"],
+                "engine": info["engine"],
+                "engineCommit": info["engineCommit"],
                 "repo": REPO_URL,
                 "languages": i18n.available_languages(),
                 "default": i18n.default_language(),

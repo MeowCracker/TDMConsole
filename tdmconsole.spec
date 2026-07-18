@@ -37,6 +37,11 @@ if not (SUBMODULE / "twitch.py").is_file():
         "Upstream submodule missing. Run: git submodule update --init --recursive"
     )
 
+# Freeze the engine's commit hash into tdm_cli/_build_info.py before Analysis —
+# the frozen binary has no .git, so the hash must be baked in at build time.
+import subprocess as _sp
+_sp.run([sys.executable, str(ROOT / "scripts" / "write_build_info.py")], check=True)
+
 # ---- data files ----------------------------------------------------------
 # (source, dest-dir-inside-bundle). Upstream resolves lang/ via _resource_path()
 # -> sys._MEIPASS/lang; our web server resolves static/ via __file__ ->
@@ -67,6 +72,17 @@ app_icon: str | None = str(_icon) if _icon.is_file() else None
 tx_datas, tx_binaries, tx_hidden = collect_all("textual")
 datas += tx_datas
 
+# ---- GUI mode deps -------------------------------------------------------
+# `--mode gui` runs upstream's native tkinter window, which needs Pillow and
+# pystray for real (bundled here so the single-file exe supports gui mode).
+# Their icon assets live in the upstream submodule's icons/ dir.
+pil_datas, pil_binaries, pil_hidden = collect_all("PIL")
+tray_datas, tray_binaries, tray_hidden = collect_all("pystray")
+datas += pil_datas + tray_datas
+for icon in (SUBMODULE / "icons").glob("*"):
+    if icon.is_file():
+        datas.append((str(icon), "icons"))
+
 # ---- hidden imports ------------------------------------------------------
 # Our own subpackages are imported lazily by mode, so name them explicitly.
 hiddenimports: list[str] = [
@@ -74,13 +90,15 @@ hiddenimports: list[str] = [
     *collect_submodules("tdm_cli"),
     *collect_submodules("aiohttp"),
     *tx_hidden,
+    *pil_hidden,
+    *tray_hidden,
 ]
 
 # ---- exclusions ----------------------------------------------------------
-# GUI-only deps the CLI never uses (bootstrap stubs tkinter/PIL when absent);
-# excluding them keeps the binary small and avoids spurious import failures.
+# Heavy deps neither the CLI frontends nor upstream's tkinter GUI ever use.
+# tkinter/PIL/pystray are deliberately NOT excluded — gui mode needs them.
 excludes: list[str] = [
-    "tkinter", "PIL", "pystray", "selenium", "seleniumwire",
+    "selenium", "seleniumwire",
     "PyQt5", "PyQt6", "PySide2", "PySide6", "matplotlib", "numpy",
 ]
 
@@ -88,7 +106,7 @@ a = Analysis(
     ["main.py"],
     pathex=[str(ROOT), str(SUBMODULE)],
     datas=datas,
-    binaries=tx_binaries,
+    binaries=tx_binaries + pil_binaries + tray_binaries,
     hiddenimports=hiddenimports,
     excludes=excludes,
     noarchive=False,

@@ -35,7 +35,6 @@ if __name__ == "__main__":
         _games: str | None
         _cookie: str | None
         _jar: str | None
-        _no_tui: bool
         _mode: str | None
         _host: str | None
         _port: int | None
@@ -94,10 +93,11 @@ if __name__ == "__main__":
         help="path of the cookie jar file (default: ./cookies.jar)",
     )
     parser.add_argument(
-        "--mode", dest="_mode", choices=("tui", "repl", "web", "headless"), default=None,
+        "--mode", dest="_mode",
+        choices=("tui", "repl", "web", "gui", "headless"), default=None,
         help="interface mode: tui (full-screen dashboard), repl (slash-command "
-             "prompt), web (browser UI for Docker), headless (plain logs); "
-             "default: saved preference, else tui",
+             "prompt), web (browser UI for Docker), gui (upstream tkinter "
+             "window), headless (plain logs); default: saved preference, else web",
     )
     parser.add_argument(
         "--host", dest="_host", metavar="ADDR", default=None,
@@ -107,10 +107,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--port", dest="_port", metavar="PORT", type=int, default=None,
         help="web mode port (default: $TDM_WEB_PORT or 8080)",
-    )
-    parser.add_argument(
-        "--no-tui", dest="_no_tui", action="store_true",
-        help="alias for --mode headless (automatic when stdout is not a terminal)",
     )
     parser.add_argument(
         "-v", dest="_verbose", action="count", default=0,
@@ -137,19 +133,23 @@ if __name__ == "__main__":
     # 'tray' is a GUI-only concept, but Settings reads it off the args object.
     args.tray = False
 
-    # Must run before importing anything from the upstream submodule: sets up
-    # sys.path, stubs GUI-only deps, swaps in the CLI GUIManager, applies paths.
+    # Two-stage bootstrap. Stage 1 (setup_paths) puts the submodule on sys.path
+    # and repoints constants — enough to import `constants`/`version` and read
+    # the saved mode preference. Stage 2 (setup) optionally installs the GUI
+    # shim: every CLI frontend swaps upstream's tkinter `gui` for our terminal
+    # implementation, but `--mode gui` leaves it alone so the native window runs.
     import tdm_cli.bootstrap as bootstrap
 
-    bootstrap.setup(settings_path=args._config, cookies_path=args._jar)
+    bootstrap.setup_paths(settings_path=args._config, cookies_path=args._jar)
 
     if args.version:
-        from version import __version__
+        from tdm_cli.versioning import version_line
 
-        print(f"v{__version__}")
+        print(version_line())
         sys.exit(0)
 
     if args.check_contract:
+        bootstrap.setup(settings_path=args._config, cookies_path=args._jar)
         issues = bootstrap.verify_contract()
         if issues:
             print("Interface drift vs. the upstream submodule:", file=sys.stderr)
@@ -172,14 +172,32 @@ if __name__ == "__main__":
 
     from yarl import URL
 
+    # Resolve the interface mode BEFORE importing upstream `twitch` (which runs
+    # `from gui import GUIManager` at import time). Stage 2 of the bootstrap then
+    # installs the CLI GUI shim for every mode EXCEPT `gui`, where upstream's
+    # native tkinter window is used as-is.
+    #
+    # The mode is NOT persisted: startup honours only `--mode`, else the default
+    # (web). This keeps `docker run` / a bare launch on web every time, instead
+    # of silently sticking to whatever a `--mode`/`/switch-mode`/wizard run last
+    # left behind. `/switch-mode` still swaps the live frontend, just for the
+    # current process.
+    from tdm_cli import console, prefs
+
+    if args._mode is not None:
+        mode = args._mode
+    else:
+        mode = prefs.DEFAULT_MODE
+    if mode in ("tui", "repl") and not console.INTERACTIVE:
+        mode = "headless"
+    bootstrap.setup(install_gui_shim=(mode != "gui"))
+
     from translate import _
     from twitch import Twitch
     from settings import Settings
     from exceptions import CaptchaRequired
     from utils import lock_file
     from constants import FILE_FORMATTER, LOG_PATH, LOCK_PATH
-
-    from tdm_cli import console
 
     warnings.simplefilter("default", ResourceWarning)
 
@@ -251,20 +269,8 @@ if __name__ == "__main__":
             except OSError:
                 pass
 
-    # Frontend selection: explicit --mode > saved preference (tdm-cli.json) >
-    # default (web, so a bare `docker run` serves the browser UI). The terminal
-    # modes fall back to headless without a TTY; web has no such requirement.
-    from tdm_cli import prefs
-
-    if args._mode is not None:
-        mode = args._mode
-    elif args._no_tui:
-        mode = "headless"
-    else:
-        mode = prefs.load_mode() or prefs.DEFAULT_MODE
-    if mode in ("tui", "repl") and not console.INTERACTIVE:
-        mode = "headless"
-
+    # `mode` was resolved earlier (before the upstream `twitch` import, so the
+    # GUI shim decision could be made). Here we just wire mode-specific config.
     if mode == "web":
         import os as _os
 
@@ -332,6 +338,21 @@ if __name__ == "__main__":
             cookie_backup = _read_valid_cookie_bytes(constants.COOKIES_PATH)
             await client.shutdown()
             _restore_cookies_if_emptied(constants.COOKIES_PATH, cookie_backup)
+        if mode == "gui":
+            # Native tkinter GUI (upstream's own GUIManager). Mirror upstream's
+            # teardown: keep the window open until the user closes it, so any
+            # final state / error stays visible. `client.gui` here is upstream's
+            # manager, which has wait_until_closed()/tray/close_window().
+            if not client.gui.close_requested:
+                client.gui.tray.change_icon("error")
+                client.print(_("status", "terminated"))
+                client.gui.status.update(_("gui", "status", "terminated"))
+                client.gui.grab_attention(sound=True)
+            await client.gui.wait_until_closed()
+            client.save(force=True)
+            client.gui.stop()
+            client.gui.close_window()
+            sys.exit(exit_status)
         if not client.gui.close_requested:
             # Terminated by an error rather than a user request.
             client.print(_("status", "terminated"))

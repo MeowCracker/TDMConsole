@@ -27,6 +27,13 @@ COPY tdm_cli ./tdm_cli
 COPY TwitchDropsMiner ./TwitchDropsMiner
 COPY main.py ./
 
+# Freeze the engine's short commit hash for /meta + --version. No .git exists in
+# the image, so it is passed in at build time (the CI computes it via
+# `git -C TwitchDropsMiner rev-parse --short HEAD`). Falls back to "unknown".
+ARG ENGINE_COMMIT=unknown
+RUN printf '"""Generated at build time (Docker) — do not edit."""\nENGINE_COMMIT = %s\n' \
+    "\"$ENGINE_COMMIT\"" > /app/tdm_cli/_build_info.py
+
 # All runtime state (settings.json, cookies.jar, tdm-cli.json, log.txt, cache/)
 # is relocated to /data via TDM_DATA_DIR, so a mounted volume persists it.
 ENV TDM_DATA_DIR=/data \

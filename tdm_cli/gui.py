@@ -635,8 +635,9 @@ class GUIManager:
         """Switch the interface mode live, without interrupting mining.
 
         Tears the current frontend down and brings the new one up on the same
-        loop. Persists the choice so it sticks across restarts. Safe to call
-        from within a frontend (e.g. the REPL's ``/switch-mode``).
+        loop. Affects only the running process — the choice is not persisted, so
+        the next launch again uses --mode / the web default. Safe to call from
+        within a frontend (e.g. the REPL's ``/switch-mode``).
         """
         if mode == self.mode or self._switch_task is not None:
             return
@@ -647,8 +648,6 @@ class GUIManager:
 
     async def _switch_frontend(self, mode: str) -> None:
         try:
-            from tdm_cli import prefs
-
             old = self.frontend
             # Tear the old frontend down intentionally (won't trip its
             # crash/close-the-miner guard).
@@ -668,10 +667,6 @@ class GUIManager:
                 await old.wait_stopped()
 
             self.mode = mode
-            try:
-                prefs.save_mode(mode)
-            except Exception:
-                pass
             self.frontend = make_frontend(mode, self)
             self.frontend.start()
             self.print(f"Interface mode switched to: {mode}")

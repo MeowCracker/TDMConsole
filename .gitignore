@@ -17,6 +17,9 @@ cache/
 build/
 dist/
 
+# Generated at build time by scripts/write_build_info.py (engine commit hash)
+tdm_cli/_build_info.py
+
 # Any backup files
 *.bak
 *.zip

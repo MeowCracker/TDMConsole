@@ -31,19 +31,20 @@ SUBMODULE_DIR = os.path.normpath(os.path.join(_HERE, os.pardir, "TwitchDropsMine
 # upstream's own _resource_path()/sys._MEIPASS logic already resolves them.
 FROZEN = getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")
 
+_paths_done = False
 _done = False
 
 
-def setup(settings_path: str | None = None, cookies_path: str | None = None) -> None:
-    """Prepare the import environment. Call once, before importing upstream code.
+def setup_paths(settings_path: str | None = None, cookies_path: str | None = None) -> None:
+    """Put upstream on sys.path and repoint its constants. Idempotent.
 
-    ``settings_path`` / ``cookies_path`` override where the miner reads/writes
-    ``settings.json`` and ``cookies.jar`` (the ``-c/--config`` and ``--jar``
-    CLI flags). They must be applied here because upstream modules bind these
-    constants at import time (``from constants import SETTINGS_PATH, ...``).
+    Needed by *every* mode before touching upstream modules or ``constants``.
+    Split out from :func:`setup` so the launcher can resolve the interface mode
+    (which reads ``constants.WORKING_DIR`` via :mod:`tdm_cli.prefs`) *before*
+    deciding whether to install the GUI shim — ``--mode gui`` must skip it.
     """
-    global _done
-    if _done:
+    global _paths_done
+    if _paths_done:
         return
     if not FROZEN:
         # Source checkout: the upstream code lives in the git submodule, which
@@ -57,10 +58,38 @@ def setup(settings_path: str | None = None, cookies_path: str | None = None) -> 
         if SUBMODULE_DIR not in sys.path:
             sys.path.insert(0, SUBMODULE_DIR)
     _patch_constants(settings_path, cookies_path)
-    _stub_gui_deps()
-    from tdm_cli import gui as cli_gui
+    _paths_done = True
 
-    sys.modules["gui"] = cli_gui
+
+def setup(
+    settings_path: str | None = None,
+    cookies_path: str | None = None,
+    *,
+    install_gui_shim: bool = True,
+) -> None:
+    """Prepare the import environment. Call once, before importing upstream code.
+
+    ``settings_path`` / ``cookies_path`` override where the miner reads/writes
+    ``settings.json`` and ``cookies.jar`` (the ``-c/--config`` and ``--jar``
+    CLI flags). They must be applied here because upstream modules bind these
+    constants at import time (``from constants import SETTINGS_PATH, ...``).
+
+    ``install_gui_shim`` controls whether upstream's tkinter ``gui`` module is
+    replaced by our terminal :mod:`tdm_cli.gui`. It is ``True`` for every CLI
+    frontend (tui/repl/web/headless). For ``--mode gui`` it is ``False``, so
+    ``from gui import GUIManager`` resolves to upstream's own native tkinter
+    window and the GUI-only deps (Pillow/pystray) are used for real, not stubbed.
+    """
+    global _done
+    if _done:
+        return
+    setup_paths(settings_path, cookies_path)
+    if install_gui_shim:
+        # CLI frontends: stub GUI-only deps and swap in the terminal GUIManager.
+        _stub_gui_deps()
+        from tdm_cli import gui as cli_gui
+
+        sys.modules["gui"] = cli_gui
     _done = True
 
 

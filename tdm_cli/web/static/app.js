@@ -86,7 +86,7 @@ if (window.matchMedia) {
 const LANG_KEY = "tdm-lang";
 let STR = {};                 // current { key: text } catalogue
 let LANGS = [];               // [{code, name}] from the server
-let META = { version: "?", repo: "" };
+let META = { app: "?", engine: "?", engineCommit: "?", repo: "" };
 
 function t(key, fallback) {
   return (STR && STR[key]) || fallback || key;
@@ -148,14 +148,24 @@ function applyStaticI18n() {
   const link = $("repo-link");
   if (link && META.repo) link.href = META.repo;
   const ver = $("repo-ver");
-  if (ver) ver.textContent = META.version ? `${t("footer.version")} ${META.version}` : "";
+  if (ver) {
+    // Two independent versions: our app, and the bundled mining engine @ commit.
+    const parts = [];
+    if (META.app) parts.push(`${t("footer.version")} ${META.app}`);
+    if (META.engine) {
+      const commit = META.engineCommit && META.engineCommit !== "unknown"
+        ? ` @ ${META.engineCommit}` : "";
+      parts.push(`${t("footer.engine")} ${META.engine}${commit}`);
+    }
+    ver.textContent = parts.join(" · ");
+  }
 }
 async function initMeta() {
   try {
     const r = await fetch("/meta");
     if (r.ok) {
       const m = await r.json();
-      META = { version: m.version, repo: m.repo };
+      META = { app: m.app, engine: m.engine, engineCommit: m.engineCommit, repo: m.repo };
       LANGS = m.languages || [];
     }
   } catch { /* offline meta — non-fatal */ }
