@@ -1,7 +1,7 @@
 name: Release binaries
 
-# On a version tag, build a single-file CLI executable for each platform. macOS
-# additionally publishes a GUI .app archive and an installable DMG.
+# Build platform-native release assets. macOS puts the GUI .app inside the DMG;
+# the standalone CLI is distributed as a tar.gz archive.
 on:
   push:
     branches: [master]
@@ -41,23 +41,23 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            asset: tdmconsole-windows-x64.exe
+            asset: TDMConsole-windows-x64.exe
             build_name: tdmconsole.exe
-            artifact_name: tdmconsole-windows-x64
+            release_name: TDMConsole-windows-x64.exe
           - os: ubuntu-22.04            # older glibc → wider Linux compatibility
-            asset: tdmconsole-linux-x64
+            asset: TDMConsole-linux-x64
             build_name: tdmconsole
-            artifact_name: tdmconsole-linux-x64
+            release_name: TDMConsole-linux-x64.tar.gz
           - os: macos-15-intel
-            asset: tdmconsole-macos-x64
+            asset: TDMConsole-macos-x64
             build_name: tdmconsole
             macos_suffix: macos-x64
-            artifact_name: tdmconsole-macos-x64
+            release_name: TDMConsole-macos-x64.tar.gz
           - os: macos-14                # Apple Silicon runner
-            asset: tdmconsole-macos-arm64
+            asset: TDMConsole-macos-arm64
             build_name: tdmconsole
             macos_suffix: macos-arm64
-            artifact_name: tdmconsole-macos-arm64
+            release_name: TDMConsole-macos-arm64.tar.gz
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout (with submodule — PyInstaller bundles the upstream code)
@@ -112,26 +112,22 @@ jobs:
         if: runner.os != 'Windows'
         run: ./dist/${{ matrix.asset }} --version
 
-      - name: Upload CLI artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}
-          path: dist/${{ matrix.asset }}
-          if-no-files-found: error
+      - name: Archive Unix executable
+        if: runner.os != 'Windows'
+        run: tar -czf "dist/${{ matrix.release_name }}" -C dist "${{ matrix.asset }}"
 
-      - name: Upload macOS app artifact
-        if: runner.os == 'macOS'
+      - name: Upload platform artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}.app
-          path: dist/TDMConsole-${{ matrix.macos_suffix }}.app.zip
+          name: ${{ matrix.release_name }}
+          path: dist/${{ matrix.release_name }}
           if-no-files-found: error
 
       - name: Upload macOS DMG artifact
         if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}.dmg
+          name: TDMConsole-${{ matrix.macos_suffix }}.dmg
           path: dist/TDMConsole-${{ matrix.macos_suffix }}.dmg
           if-no-files-found: error
 

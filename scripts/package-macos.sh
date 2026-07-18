@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 APP_PATH="$ROOT_DIR/dist/TDMConsole.app"
 ARTIFACT_SUFFIX="${1:-macos-$(uname -m)}"
-ZIP_PATH="$ROOT_DIR/dist/TDMConsole-${ARTIFACT_SUFFIX}.app.zip"
 DMG_PATH="$ROOT_DIR/dist/TDMConsole-${ARTIFACT_SUFFIX}.dmg"
+LEGACY_APP_ZIP="$ROOT_DIR/dist/TDMConsole-${ARTIFACT_SUFFIX}.app.zip"
 ENTITLEMENTS="$ROOT_DIR/assets/entitlements.plist"
 ICON="$ROOT_DIR/assets/favicon.icns"
 BACKGROUND="$ROOT_DIR/assets/dmg-bg.png"
@@ -44,8 +44,7 @@ codesign \
     "$APP_PATH"
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"
 
-rm -f "$ZIP_PATH" "$DMG_PATH"
-ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ZIP_PATH"
+rm -f "$DMG_PATH" "$LEGACY_APP_ZIP"
 
 STAGING_DIR="$(mktemp -d "${TMPDIR:-/tmp}/tdmconsole-dmg.XXXXXX")"
 trap 'rm -rf "$STAGING_DIR"' EXIT
@@ -65,5 +64,4 @@ create-dmg \
     "$STAGING_DIR"
 
 echo "Created:"
-echo "  $ZIP_PATH"
 echo "  $DMG_PATH"
