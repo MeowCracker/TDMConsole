@@ -22,6 +22,7 @@ Output: dist/tdmconsole  (or dist/tdmconsole.exe on Windows)
 from __future__ import annotations
 
 import sys
+import os
 from pathlib import Path
 
 from PyInstaller.utils.hooks import collect_all, collect_submodules
@@ -35,6 +36,7 @@ for p in (str(ROOT), str(SUBMODULE)):
         sys.path.insert(0, p)
 
 from tdm_cli import __version__ as APP_VERSION
+BUILD_VERSION = os.environ.get("TDM_BUILD_VERSION", APP_VERSION)
 
 if not (SUBMODULE / "twitch.py").is_file():
     raise SystemExit(
@@ -176,6 +178,7 @@ if sys.platform == "darwin":
         version=APP_VERSION,
         bundle_identifier="com.github.meowcracker.tdmconsole",
         info_plist={
+            "CFBundleVersion": BUILD_VERSION,
             "LSApplicationCategoryType": "public.app-category.utilities",
             "NSHighResolutionCapable": True,
         },

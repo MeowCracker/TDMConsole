@@ -9,6 +9,11 @@ DMG_PATH="$ROOT_DIR/dist/TDMConsole-${ARTIFACT_SUFFIX}.dmg"
 ENTITLEMENTS="$ROOT_DIR/assets/entitlements.plist"
 ICON="$ROOT_DIR/assets/favicon.icns"
 BACKGROUND="$ROOT_DIR/assets/dmg-bg.png"
+BUILD_VERSION="${TDM_BUILD_VERSION:-}"
+VOLNAME="TDMConsole"
+if [ -n "$BUILD_VERSION" ]; then
+    VOLNAME="TDMConsole $BUILD_VERSION"
+fi
 
 if [ "$(uname)" != "Darwin" ]; then
     echo "This packaging script must run on macOS." >&2
@@ -47,7 +52,7 @@ trap 'rm -rf "$STAGING_DIR"' EXIT
 ditto "$APP_PATH" "$STAGING_DIR/TDMConsole.app"
 
 create-dmg \
-    --volname "TDMConsole" \
+    --volname "$VOLNAME" \
     --volicon "$ICON" \
     --window-pos 400 200 \
     --window-size 660 400 \
