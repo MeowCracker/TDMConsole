@@ -1,7 +1,7 @@
 # TDMConsole
 
 <div align="center">
-English | [简体中文](./README_CN.md)
+English | <a href="https://github.com/MeowCracker/TDMConsole/blob/master/README_CN.md">简体中文</a>
 </div>
 
 > [!warning]
