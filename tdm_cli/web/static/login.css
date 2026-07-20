@@ -1,0 +1,118 @@
+.login-rail {
+  position: fixed;
+  width: 100%;
+}
+
+.theme-toggle {
+  position: relative;
+  overflow: hidden;
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-container-high);
+  color: var(--on-surface-variant);
+  font: 20px/1 var(--font);
+  cursor: pointer;
+}
+
+.theme-toggle::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.theme-toggle:hover::after { opacity: 0.08; }
+.theme-toggle:active::after { opacity: 0.12; }
+.theme-toggle:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+
+.login-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 88px var(--s6) var(--s6);
+}
+
+.login-panel {
+  width: calc(100vw - 48px);
+  max-width: 420px;
+  min-width: 0;
+  padding: var(--s6);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-xs);
+  background: var(--surface-container-low);
+  box-shadow: var(--elev-3);
+}
+
+.login-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  margin-bottom: var(--s6);
+}
+
+.login-logo {
+  width: 56px;
+  height: 56px;
+  flex: 0 0 auto;
+}
+
+.login-heading h1 {
+  margin: 0;
+  color: var(--on-surface);
+  font-family: var(--font-display);
+  font-size: var(--t-xl);
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.login-heading p {
+  margin: var(--s1) 0 0;
+  color: var(--on-surface-variant);
+  font-size: var(--t-sm);
+}
+
+.login-panel .field { margin-bottom: var(--s4); }
+
+.login-panel form,
+.login-panel .field,
+.login-panel .field input {
+  min-width: 0;
+}
+
+.login-panel .field input {
+  min-height: 48px;
+  letter-spacing: 0;
+}
+
+.error {
+  margin: 0 0 var(--s4);
+  padding: var(--s3);
+  border-radius: var(--radius-xs);
+  background: var(--danger-container);
+  color: var(--danger);
+  font-size: var(--t-sm);
+}
+
+.login-submit {
+  width: 100%;
+  min-height: 44px;
+}
+
+.login-submit:disabled {
+  cursor: wait;
+}
+
+@media (max-width: 480px) {
+  .login-shell { padding: 80px var(--s4) var(--s4); }
+  .login-panel { width: calc(100vw - 32px); padding: var(--s4); }
+}

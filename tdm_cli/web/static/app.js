@@ -86,7 +86,7 @@ if (window.matchMedia) {
 const LANG_KEY = "tdm-lang";
 let STR = {};                 // current { key: text } catalogue
 let LANGS = [];               // [{code, name}] from the server
-let META = { app: "?", engine: "?", engineCommit: "?", repo: "" };
+let META = { app: "?", engine: "?", engineCommit: "?", repo: "", authEnabled: false };
 
 function t(key, fallback) {
   return (STR && STR[key]) || fallback || key;
@@ -159,13 +159,20 @@ function applyStaticI18n() {
     }
     ver.textContent = parts.join(" · ");
   }
+  $("btn-logout").hidden = !META.authEnabled;
 }
 async function initMeta() {
   try {
     const r = await fetch("/meta");
     if (r.ok) {
       const m = await r.json();
-      META = { app: m.app, engine: m.engine, engineCommit: m.engineCommit, repo: m.repo };
+      META = {
+        app: m.app,
+        engine: m.engine,
+        engineCommit: m.engineCommit,
+        repo: m.repo,
+        authEnabled: Boolean(m.authEnabled),
+      };
       LANGS = m.languages || [];
     }
   } catch { /* offline meta — non-fatal */ }
@@ -176,7 +183,14 @@ function connect() {
   const proto = location.protocol === "https:" ? "wss" : "ws";
   ws = new WebSocket(`${proto}://${location.host}/ws`);
   ws.onopen = () => setConn(true);
-  ws.onclose = () => { setConn(false); setTimeout(connect, 1500); };
+  ws.onclose = (event) => {
+    if (event.code === 4401) {
+      redirectToLogin();
+      return;
+    }
+    setConn(false);
+    checkSessionThenReconnect();
+  };
   ws.onerror = () => ws.close();
   ws.onmessage = (ev) => {
     let msg;
@@ -184,6 +198,21 @@ function connect() {
     if (msg.type === "state") { state = msg.data; render(state); }
     else if (msg.type === "log") { appendLog(msg.lines); }
   };
+}
+
+function redirectToLogin() {
+  location.assign(`/login?next=${encodeURIComponent(location.pathname)}`);
+}
+
+async function checkSessionThenReconnect() {
+  try {
+    const response = await fetch("/session", { cache: "no-store" });
+    if (response.status === 401) {
+      redirectToLogin();
+      return;
+    }
+  } catch { /* server may still be restarting */ }
+  setTimeout(connect, 1500);
 }
 
 function setConn(ok) {
@@ -650,6 +679,14 @@ $("btn-login").onclick = () => send("/login");
 $("login-cta").onclick = () => send("/login");
 $("btn-games").onclick = () => { if (state) openGames(); };
 $("btn-settings").onclick = () => { if (state) openSettings(); };
+$("btn-logout").onclick = async () => {
+  $("btn-logout").disabled = true;
+  try {
+    await fetch("/logout", { method: "POST", credentials: "same-origin" });
+  } finally {
+    location.assign("/login");
+  }
+};
 
 /* ---- startup: load languages + strings before first paint, then connect - */
 async function start() {

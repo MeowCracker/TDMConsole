@@ -51,6 +51,8 @@ if __name__ == "__main__":
         _mode: str | None
         _host: str | None
         _port: int | None
+        _username: str | None
+        _password: str | None
         _update: bool
         check_contract: bool
 
@@ -123,6 +125,14 @@ if __name__ == "__main__":
         help="web mode port (default: $TDM_WEB_PORT or 8080)",
     )
     parser.add_argument(
+        "--username", dest="_username", metavar="USERNAME", default=None,
+        help="require this username for WebUI access (requires --password)",
+    )
+    parser.add_argument(
+        "--password", dest="_password", metavar="PASSWORD", default=None,
+        help="require this password for WebUI access (requires --username)",
+    )
+    parser.add_argument(
         "-v", dest="_verbose", action="count", default=0,
         help="increase verbosity (repeatable, up to -vvvv)",
     )
@@ -150,6 +160,14 @@ if __name__ == "__main__":
     args = parser.parse_args(namespace=ParsedArgs())
     # 'tray' is a GUI-only concept, but Settings reads it off the args object.
     args.tray = False
+
+    if (args._username is None) != (args._password is None):
+        parser.error("--username and --password must be provided together")
+    if args._username is not None:
+        if not args._username or not args._password:
+            parser.error("--username and --password cannot be empty")
+        if ":" in args._username:
+            parser.error("--username cannot contain ':'")
 
     running_macos_app = getattr(sys, "frozen", False) and _is_macos_app_bundle(
         Path(sys.executable)
@@ -230,6 +248,8 @@ if __name__ == "__main__":
         mode = prefs.DEFAULT_MODE
     if mode in ("tui", "repl") and not console.INTERACTIVE:
         mode = "headless"
+    if args._username is not None and mode != "web":
+        parser.error("--username and --password can only be used with --mode web")
     bootstrap.setup(install_gui_shim=(mode != "gui"))
 
     from translate import _
@@ -318,6 +338,8 @@ if __name__ == "__main__":
 
         web_frontend.HOST = args._host or _os.environ.get("TDM_WEB_HOST", "127.0.0.1")
         web_frontend.PORT = int(args._port or _os.environ.get("TDM_WEB_PORT", "8080"))
+        web_frontend.AUTH_USERNAME = args._username
+        web_frontend.AUTH_PASSWORD = args._password
 
     import tdm_cli.gui as cli_gui
 

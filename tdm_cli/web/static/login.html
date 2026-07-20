@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Sign in | TDMConsole</title>
+  <link rel="icon" href="/static/favicon.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/app.css">
+  <link rel="stylesheet" href="/static/login.css">
+  <script src="/static/login.js" defer></script>
+</head>
+<body>
+  <header class="rail login-rail" role="banner">
+    <div class="brand">
+      <span class="pickaxe" aria-hidden="true">⛏</span>
+      <span class="brand-name">TDMConsole</span>
+    </div>
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Switch appearance" title="Switch appearance">
+      <span id="theme-icon" aria-hidden="true">☀</span>
+    </button>
+  </header>
+
+  <main class="login-shell">
+    <section class="panel login-panel" aria-labelledby="login-title">
+      <header class="login-heading">
+        <img class="login-logo" src="/static/favicon.png" alt="" width="56" height="56">
+        <div>
+          <h1 id="login-title">Sign in</h1>
+          <p>Continue to TDMConsole</p>
+        </div>
+      </header>
+
+      <form id="login-form" novalidate>
+        <div class="field">
+          <label for="username">Username</label>
+          <input id="username" name="username" type="text" autocomplete="username" required autofocus>
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+        </div>
+
+        <p id="login-error" class="error" role="alert" aria-live="polite" hidden></p>
+        <button id="login-submit" class="btn btn-primary login-submit" type="submit">Sign in</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

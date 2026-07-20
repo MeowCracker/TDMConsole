@@ -18,6 +18,8 @@ if TYPE_CHECKING:
 # Set by main.py before Twitch()/GUIManager is constructed.
 HOST: str = "127.0.0.1"
 PORT: int = 8080
+AUTH_USERNAME: str | None = None
+AUTH_PASSWORD: str | None = None
 
 
 class WebFrontend:
@@ -36,7 +38,13 @@ class WebFrontend:
     async def _serve(self) -> None:
         from tdm_cli.web.server import WebServer
 
-        self._server = WebServer(self._m, HOST, PORT)
+        self._server = WebServer(
+            self._m,
+            HOST,
+            PORT,
+            username=AUTH_USERNAME,
+            password=AUTH_PASSWORD,
+        )
         try:
             await self._server.start()
         except Exception as exc:

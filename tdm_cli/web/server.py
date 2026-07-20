@@ -12,7 +12,10 @@ from __future__ import annotations
 
 import json
 import asyncio
+import hashlib
 import logging
+import secrets
+import time
 from pathlib import Path
 from contextlib import suppress
 from typing import Any, TYPE_CHECKING
@@ -30,6 +33,104 @@ STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 # Shown in the WebUI footer under the Settings button (source & docs link).
 REPO_URL = "https://github.com/MeowCracker/TDMConsole"
+SESSION_COOKIE = "tdmconsole_session"
+SESSION_TTL_SECONDS = 3 * 24 * 60 * 60
+_AUTH_EXPIRES_AT = web.RequestKey("auth_expires_at", float)
+_PUBLIC_PATHS = frozenset(
+    {
+        "/login",
+        "/static/app.css",
+        "/static/favicon.png",
+        "/static/login.css",
+        "/static/login.js",
+    }
+)
+
+
+class _MemorySessions:
+    """Process-local WebUI sessions; a process restart invalidates every token."""
+
+    def __init__(self, username: str, password: str) -> None:
+        if not username or not password:
+            raise ValueError("WebUI username and password cannot be empty")
+        if ":" in username:
+            raise ValueError("WebUI username cannot contain ':'")
+        self._username = self._digest(username)
+        self._password = self._digest(password)
+        self._sessions: dict[str, float] = {}
+
+    @staticmethod
+    def _digest(value: str) -> bytes:
+        return hashlib.sha256(value.encode("utf-8")).digest()
+
+    def create(self, username: str, password: str) -> str | None:
+        username_ok = secrets.compare_digest(self._digest(username), self._username)
+        password_ok = secrets.compare_digest(self._digest(password), self._password)
+        if not (username_ok and password_ok):
+            return None
+        now = time.monotonic()
+        self._purge(now)
+        token = secrets.token_urlsafe(32)
+        self._sessions[token] = now + SESSION_TTL_SECONDS
+        return token
+
+    def validate(self, token: str | None) -> float | None:
+        if not token:
+            return None
+        expires_at = self._sessions.get(token)
+        if expires_at is None:
+            return None
+        if expires_at <= time.monotonic():
+            self._sessions.pop(token, None)
+            return None
+        return expires_at
+
+    def revoke(self, token: str | None) -> None:
+        if token:
+            self._sessions.pop(token, None)
+
+    def _purge(self, now: float) -> None:
+        for token, expires_at in list(self._sessions.items()):
+            if expires_at <= now:
+                self._sessions.pop(token, None)
+
+
+def _session_auth_middleware(sessions: _MemorySessions):
+    @web.middleware
+    async def require_session(request: web.Request, handler):
+        expires_at = sessions.validate(request.cookies.get(SESSION_COOKIE))
+        if expires_at is not None:
+            request[_AUTH_EXPIRES_AT] = expires_at
+        if request.path in _PUBLIC_PATHS:
+            return await handler(request)
+        if expires_at is None:
+            if request.method == "GET" and request.path == "/":
+                return web.HTTPFound("/login?next=/")
+            return web.json_response(
+                {"error": "authentication_required"},
+                status=401,
+                headers={"Cache-Control": "no-store"},
+            )
+        return await handler(request)
+
+    return require_session
+
+
+def _login_response(token: str, *, secure: bool) -> web.Response:
+    response = web.json_response(
+        {"ok": True, "expiresIn": SESSION_TTL_SECONDS},
+        headers={"Cache-Control": "no-store"},
+    )
+    response.set_cookie(
+        SESSION_COOKIE,
+        token,
+        max_age=SESSION_TTL_SECONDS,
+        httponly=True,
+        secure=secure,
+        samesite="Strict",
+        path="/",
+    )
+    return response
 
 
 def snapshot(manager: GUIManager) -> dict[str, Any]:
@@ -120,10 +221,25 @@ def _log_payload(entries) -> dict[str, Any]:
 
 
 class WebServer:
-    def __init__(self, manager: GUIManager, host: str, port: int) -> None:
+    def __init__(
+        self,
+        manager: GUIManager,
+        host: str,
+        port: int,
+        *,
+        username: str | None = None,
+        password: str | None = None,
+    ) -> None:
+        if (username is None) != (password is None):
+            raise ValueError("WebUI username and password must be provided together")
         self._m = manager
         self._host = host
         self._port = port
+        self._sessions = (
+            _MemorySessions(username, password)
+            if username is not None and password is not None
+            else None
+        )
         self._runner: web.AppRunner | None = None
         self._site: web.TCPSite | None = None
         self._clients: set[web.WebSocketResponse] = set()
@@ -141,10 +257,17 @@ class WebServer:
         return f"http://{shown}:{self._port}"
 
     async def start(self) -> None:
-        app = web.Application()
+        middlewares = (
+            [_session_auth_middleware(self._sessions)] if self._sessions else []
+        )
+        app = web.Application(middlewares=middlewares)
         app.add_routes(
             [
                 web.get("/", self._handle_index),
+                web.get("/login", self._handle_login_page),
+                web.post("/login", self._handle_login),
+                web.post("/logout", self._handle_logout),
+                web.get("/session", self._handle_session),
                 web.get("/ws", self._handle_ws),
                 web.get("/static/{name}", self._handle_static),
                 web.get("/meta", self._handle_meta),
@@ -188,6 +311,62 @@ class WebServer:
     async def _handle_index(self, request: web.Request) -> web.StreamResponse:
         return web.FileResponse(STATIC_DIR / "index.html", headers=self._NO_STORE)
 
+    async def _handle_login_page(self, request: web.Request) -> web.StreamResponse:
+        if self._sessions is None or _AUTH_EXPIRES_AT in request:
+            raise web.HTTPFound("/")
+        return web.FileResponse(STATIC_DIR / "login.html", headers=self._NO_STORE)
+
+    async def _handle_login(self, request: web.Request) -> web.StreamResponse:
+        if self._sessions is None:
+            raise web.HTTPNotFound()
+        try:
+            payload = await request.json()
+        except (TypeError, ValueError):
+            return web.json_response(
+                {"error": "invalid_request"},
+                status=400,
+                headers=self._NO_STORE,
+            )
+        if not isinstance(payload, dict):
+            return web.json_response(
+                {"error": "invalid_request"},
+                status=400,
+                headers=self._NO_STORE,
+            )
+        username = payload.get("username")
+        password = payload.get("password")
+        if not isinstance(username, str) or not isinstance(password, str):
+            token = None
+        else:
+            token = self._sessions.create(username, password)
+        if token is None:
+            return web.json_response(
+                {"error": "invalid_credentials"},
+                status=401,
+                headers=self._NO_STORE,
+            )
+        return _login_response(token, secure=request.secure)
+
+    async def _handle_logout(self, request: web.Request) -> web.StreamResponse:
+        if self._sessions is None:
+            raise web.HTTPNotFound()
+        self._sessions.revoke(request.cookies.get(SESSION_COOKIE))
+        response = web.json_response({"ok": True}, headers=self._NO_STORE)
+        response.del_cookie(SESSION_COOKIE, path="/")
+        return response
+
+    async def _handle_session(self, request: web.Request) -> web.StreamResponse:
+        expires_at = request.get(_AUTH_EXPIRES_AT)
+        expires_in = (
+            max(0, int(expires_at - time.monotonic()))
+            if isinstance(expires_at, float)
+            else None
+        )
+        return web.json_response(
+            {"ok": True, "expiresIn": expires_in},
+            headers=self._NO_STORE,
+        )
+
     async def _handle_static(self, request: web.Request) -> web.StreamResponse:
         # Serve app.css / app.js with no-store so edits are always picked up
         # (a stale cached stylesheet was leaving the modal overlay on screen).
@@ -212,6 +391,7 @@ class WebServer:
                 "engine": info["engine"],
                 "engineCommit": info["engineCommit"],
                 "repo": REPO_URL,
+                "authEnabled": self._sessions is not None,
                 "languages": i18n.available_languages(),
                 "default": i18n.default_language(),
             },
@@ -228,6 +408,10 @@ class WebServer:
         ws = web.WebSocketResponse(heartbeat=30)
         await ws.prepare(request)
         self._clients.add(ws)
+        expiry_task: asyncio.Task[None] | None = None
+        expires_at = request.get(_AUTH_EXPIRES_AT)
+        if isinstance(expires_at, float):
+            expiry_task = asyncio.create_task(self._expire_websocket(ws, expires_at))
         # Prime the new client with a full snapshot + the whole log backlog.
         with suppress(Exception):
             await ws.send_json({"type": "state", "data": snapshot(self._m)})
@@ -239,8 +423,18 @@ class WebServer:
                 elif msg.type is WSMsgType.ERROR:
                     break
         finally:
+            if expiry_task is not None:
+                expiry_task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await expiry_task
             self._clients.discard(ws)
         return ws
+
+    @staticmethod
+    async def _expire_websocket(ws: web.WebSocketResponse, expires_at: float) -> None:
+        await asyncio.sleep(max(0.0, expires_at - time.monotonic()))
+        if not ws.closed:
+            await ws.close(code=4401, message=b"session expired")
 
     def _dispatch(self, raw: str) -> None:
         try:
