@@ -24,19 +24,21 @@
 
 ### 启动参数说明
 
-| 参数                                 | 用途                                     | 必需  | 默认值                |
-| ------------------------------------ | ---------------------------------------- | ----- | --------------------- |
-| `-h`/`--help`                        | 展示帮助信息                             | False |                       |
-| `-c`/`--config`                      | 指定配置文件                             | False | `./settings.json`     |
-| `--game "game1,game2,..."`           | 指定游戏列表                             | False | `<EMPTY>`             |
-| `--cookie COOKIE`                    | 将 Twitch 的 Cookie 在 TDMConsole 中复用 | False | `<EMPTY>`，会要求登录 |
-| `--jar COOKIEJAR`                    | 指定 Cookie 文件的路径                   | False | `./cookies.jar`       |
-| `--mode {web,repl,tui,gui,headless}` | 指定 TDMConsole 的运作模式               | False | `web`                 |
-| `--host ADDRESS`                     | 设置 WEBUI 的监听地址                    | False | `127.0.0.1`           |
-| `--port PORT`                        | 设置 WEBUI 的监听端口                    | False | `8080`                |
-| `--v[vvv]`                           | verbose 调试输出                         | False |                       |
-| `--log`                              | 写出日志到 `log.txt`                     | False |                       |
-| `--version`                          | 展示版本号                               | False |                       |
+| 参数                                 | 用途                                     | 必需                 | 默认值                |
+| ------------------------------------ | ---------------------------------------- | -------------------- | --------------------- |
+| `-h`/`--help`                        | 展示帮助信息                             | False                |                       |
+| `-c`/`--config`                      | 指定配置文件                             | False                | `./settings.json`     |
+| `--game "game1,game2,..."`           | 指定游戏列表                             | False                | `<EMPTY>`             |
+| `--cookie COOKIE`                    | 将 Twitch 的 Cookie 在 TDMConsole 中复用 | False                | `<EMPTY>`，会要求登录 |
+| `--jar COOKIEJAR`                    | 指定 Cookie 文件的路径                   | False                | `./cookies.jar`       |
+| `--mode {web,repl,tui,gui,headless}` | 指定 TDMConsole 的运作模式               | False                | `web`                 |
+| `--host ADDRESS`                     | 设置 WEBUI 的监听地址                    | False                | `127.0.0.1`           |
+| `--port PORT`                        | 设置 WEBUI 的监听端口                    | False                | `8080`                |
+| `--username USERNAME`                | 设置 WEBUI 的用户名                      | 与 `--password` 同步 |                       |
+| `--password PASSWORD`                | 设置 WEBUI 的密码                        | 与 `--username` 同步 |                       |
+| `--v[vvv]`                           | verbose 调试输出                         | False                |                       |
+| `--log`                              | 写出日志到 `log.txt`                     | False                |                       |
+| `--version`                          | 展示版本号                               | False                |                       |
 
 ### 二进制产物
 

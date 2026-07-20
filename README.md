@@ -25,19 +25,21 @@ If you want to know how the TDM work, you may check out the original project [De
 
 ### Command-Line Options
 
-| Arguments                            | Works for                               | Required | Default                          |
-| ------------------------------------ | --------------------------------------- | -------- | -------------------------------- |
-| `-h`/`--help`                        | Show help message                       | False    |                                  |
-| `-c`/`--config`                      | Specify a config file                   | False    | `./settings.json`                |
-| `--game "game1,game2,..."`           | Specify your game list                  | False    | `<EMPTY>`                        |
-| `--cookie COOKIE`                    | Pass your exist cookie to the program   | False    | `<EMPTY>`, and login is required |
-| `--jar COOKIEJAR`                    | Specify the path of cookie jar          | False    | `./cookies.jar`                  |
-| `--mode {web,repl,tui,gui,headless}` | Specify a mode to run TDMConsole        | False    | `web`                            |
-| `--host ADDRESS`                     | Set the listening address of webui mode | False    | `127.0.0.1`                      |
-| `--port PORT`                        | Set the listening port of webui mode    | False    | `8080`                           |
-| `--v[vvv]`                           | Verbose                                 | False    |                                  |
-| `--log`                              | Write log to `log.txt`                  | False    |                                  |
-| `--version`                          | Show version                            | False    |                                  |
+| Arguments                            | Works for                               | Required               | Default                          |
+| ------------------------------------ | --------------------------------------- | ---------------------- | -------------------------------- |
+| `-h`/`--help`                        | Show help message                       | False                  |                                  |
+| `-c`/`--config`                      | Specify a config file                   | False                  | `./settings.json`                |
+| `--game "game1,game2,..."`           | Specify your game list                  | False                  | `<EMPTY>`                        |
+| `--cookie COOKIE`                    | Pass your exist cookie to the program   | False                  | `<EMPTY>`, and login is required |
+| `--jar COOKIEJAR`                    | Specify the path of cookie jar          | False                  | `./cookies.jar`                  |
+| `--mode {web,repl,tui,gui,headless}` | Specify a mode to run TDMConsole        | False                  | `web`                            |
+| `--host ADDRESS`                     | Set the listening address of webui mode | False                  | `127.0.0.1`                      |
+| `--port PORT`                        | Set the listening port of webui mode    | False                  | `8080`                           |
+| `--username USERNAME`                | Specifiy a username for webui mode      | Sync with `--password` |                                  |
+| `--password PASSWORD`                | Specify a password for webui mode       | Sync with `--username` |                                  |
+| `--v[vvv]`                           | Verbose                                 | False                  |                                  |
+| `--log`                              | Write log to `log.txt`                  | False                  |                                  |
+| `--version`                          | Show version                            | False                  |                                  |
 
 ### Executable Artifacts
 
