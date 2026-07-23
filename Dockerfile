@@ -45,5 +45,6 @@ RUN mkdir -p /data
 VOLUME /data
 EXPOSE 8080
 
-# Uses the synced venv python; --mode web needs no TTY.
-ENTRYPOINT ["python", "/app/main.py", "--mode", "web"]
+# Uses the synced venv python; --mode web needs no TTY. WebUI authentication
+# is enabled only when the corresponding environment variables are non-empty.
+ENTRYPOINT ["/bin/sh", "-c", "set -- python /app/main.py --mode web \"$@\"; if [ -n \"${USERNAME:-}\" ]; then set -- \"$@\" --username \"$USERNAME\"; fi; if [ -n \"${PASSWORD:-}\" ]; then set -- \"$@\" --password \"$PASSWORD\"; fi; exec \"$@\"", "--"]
