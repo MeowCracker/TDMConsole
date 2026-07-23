@@ -1,6 +1,6 @@
 name: Docker image
 
-# Build and publish the web-mode container to GHCR on version tags.
+# Build and publish the web-mode container to GHCR.
 # Consumers then just:  docker run -d -p 8080:8080 -v tdm-data:/data ghcr.io/<owner>/tdmconsole
 on:
   workflow_dispatch: {}
@@ -52,15 +52,17 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest
+          labels: |
+            org.opencontainers.image.title=TDMConsole
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
 
-      # Push only on a version-tag build. A manual (workflow_dispatch) run just
-      # builds to validate the Dockerfile — it does not publish an image, so it
-      # can't clobber :latest from an arbitrary master state.
+      # workflow_dispatch is an explicit publish action. A tag dispatch also
+      # receives the semver tags generated above in addition to :latest.
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: ${{ startsWith(github.ref, 'refs/tags/') }}
+          push: true
           build-args: |
             ENGINE_COMMIT=${{ steps.engine.outputs.hash }}
           tags: ${{ steps.meta.outputs.tags }}
