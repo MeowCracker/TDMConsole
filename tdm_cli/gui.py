@@ -564,6 +564,7 @@ class GUIManager:
         self.frontend = make_frontend(self.mode, self)
         self._switch_task: asyncio.Task[None] | None = None
         self._engine_update_task: asyncio.Task[None] | None = None
+        self._engine_update_result: str | None = None
         self._restart_requested = False
 
         # Components (order-independent; none touch a display)
@@ -598,6 +599,10 @@ class GUIManager:
     @property
     def engine_update_running(self) -> bool:
         return self._engine_update_task is not None
+
+    @property
+    def engine_update_result(self) -> str | None:
+        return self._engine_update_result
 
     async def wait_until_closed(self) -> None:
         # Doubles as an interruptible sleep: twitch.py awaits this with a timeout
@@ -660,6 +665,7 @@ class GUIManager:
         """Start one non-blocking engine update shared by every CLI frontend."""
         if self._engine_update_task is not None:
             return False
+        self._engine_update_result = None
         self._update_log("Checking for engine updates...", "info")
         self._engine_update_task = asyncio.create_task(self._update_engine())
         return True
@@ -674,8 +680,10 @@ class GUIManager:
         try:
             result = await asyncio.to_thread(update_engine)
             if not result.changed:
+                self._engine_update_result = "up_to_date"
                 self._update_log(result.message, "success")
                 return
+            self._engine_update_result = "updated"
             self._update_log(result.message, "success")
             self._update_log("Restarting to load the updated engine...", "notify")
             self._restart_requested = True
@@ -684,8 +692,10 @@ class GUIManager:
             await asyncio.sleep(0.75)
             self.close()
         except EngineUpdateError as exc:
+            self._engine_update_result = "failed"
             self._update_log(f"Engine update failed: {exc}", "error")
         except Exception as exc:  # defensive: keep the miner alive
+            self._engine_update_result = "failed"
             self._update_log(f"Unexpected engine update error: {exc}", "error")
         finally:
             self._engine_update_task = None

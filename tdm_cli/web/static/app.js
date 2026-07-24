@@ -18,7 +18,11 @@ let campaignsExpanded = false;
 let campaignTransitioning = false;
 let campaignCollapseTimer = null;
 const RUNTIME_COLLAPSED_KEY = "tdm-runtime-collapsed";
-let runtimeCollapsed = localStorage.getItem(RUNTIME_COLLAPSED_KEY) === "true";
+let runtimeCollapsed = localStorage.getItem(RUNTIME_COLLAPSED_KEY) !== "false";
+let engineUpdateRequested = false;
+let engineUpToDate = false;
+let engineUpToDateTimer = null;
+let toastTimer = null;
 
 /* ---- theming: accent colour is user-overridable, persisted locally ------ */
 const THEME_KEY = "tdm-accent";
@@ -224,6 +228,43 @@ function toggleRuntime() {
   updateRuntimeToggle();
 }
 
+function showToast(message) {
+  const toast = $("toast");
+  if (!toast) return;
+  if (toastTimer) window.clearTimeout(toastTimer);
+  toast.textContent = message;
+  toast.classList.add("show");
+  toastTimer = window.setTimeout(() => toast.classList.remove("show"), 4000);
+}
+
+function renderUpdateButton(s = state || {}) {
+  const button = $("btn-update");
+  const active = engineUpdateRequested || Boolean(s.engineUpdating);
+  const upToDate = engineUpToDate && !active;
+  const label = button.querySelector("span");
+  button.disabled = active;
+  button.classList.toggle("is-loading", active);
+  button.classList.toggle("is-up-to-date", upToDate);
+  button.setAttribute("aria-busy", String(active));
+  if (label) {
+    label.textContent = active
+      ? t("btn.updating", "Updating engine...")
+      : (upToDate
+        ? t("btn.up_to_date", "Engine is up to date")
+        : t("btn.update", "Update engine"));
+  }
+}
+
+function showEngineUpToDate() {
+  engineUpToDate = true;
+  if (engineUpToDateTimer) window.clearTimeout(engineUpToDateTimer);
+  renderUpdateButton();
+  engineUpToDateTimer = window.setTimeout(() => {
+    engineUpToDate = false;
+    renderUpdateButton();
+  }, 3000);
+}
+
 async function refreshRuntime() {
   try {
     const response = await fetch("/runtime", { credentials: "same-origin" });
@@ -294,7 +335,15 @@ function render(s) {
   else if (s.watching && s.watching.channel) led.dataset.state = "watching";
   else led.dataset.state = "idle";
 
-  $("btn-update").disabled = Boolean(s.engineUpdating);
+  const updateResult = s.engineUpdateResult || "";
+  if (engineUpdateRequested && !s.engineUpdating && updateResult) {
+    engineUpdateRequested = false;
+    if (updateResult === "up_to_date") {
+      showToast(t("toast.engine_up_to_date", "The engine is already up to date."));
+      showEngineUpToDate();
+    }
+  }
+  renderUpdateButton(s);
 
   // user plate
   const login = s.login || {};
@@ -835,7 +884,14 @@ function openSettings() {
 
 /* ---- wire up controls --------------------------------------------------- */
 $("btn-reload").onclick = () => send("/reload");
-$("btn-update").onclick = () => send("/update");
+$("btn-update").onclick = () => {
+  if (engineUpdateRequested) return;
+  engineUpToDate = false;
+  if (engineUpToDateTimer) window.clearTimeout(engineUpToDateTimer);
+  engineUpdateRequested = true;
+  renderUpdateButton();
+  send("/update");
+};
 $("btn-login").onclick = () => send("/login");
 $("login-cta").onclick = () => send("/login");
 $("btn-campaigns-expand").onclick = () => {

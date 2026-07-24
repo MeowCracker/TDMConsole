@@ -316,6 +316,7 @@ def snapshot(manager: GUIManager) -> dict[str, Any]:
         "status": s.status,
         "mode": manager.mode,
         "engineUpdating": manager.engine_update_running,
+        "engineUpdateResult": manager.engine_update_result,
         "login": {
             "available": s.login_available,
             "prompt": s.login_prompt,

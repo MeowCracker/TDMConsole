@@ -572,6 +572,11 @@ body.campaigns-expanded { overflow: hidden; }
 }
 .toast.show { opacity: 1; }
 
+#btn-update.is-loading .ico { animation: engine-update-spin .85s linear infinite; }
+#btn-update.is-up-to-date { color: var(--success); background: var(--success-container); }
+@keyframes engine-update-spin { to { transform: rotate(360deg); } }
+
 @media (prefers-reduced-motion: reduce) {
   .campaigns.is-expanded { transition: none; }
+  #btn-update.is-loading .ico { animation: none; }
 }

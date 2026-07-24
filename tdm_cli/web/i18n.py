@@ -29,6 +29,8 @@ _EXTRA: dict[str, dict[str, str]] = {
         "app.tagline": "Twitch Drops Miner",
         "btn.reload": "Reload",
         "btn.update": "Update engine",
+        "btn.updating": "Updating engine...",
+        "btn.up_to_date": "Engine is up to date",
         "btn.logout": "Sign out",
         "btn.login": "Log in",
         "btn.online": "Online",
@@ -53,6 +55,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "runtime.cache": "Cache",
         "runtime.expand": "Expand runtime",
         "runtime.collapse": "Collapse runtime",
+        "toast.engine_up_to_date": "The engine is already up to date.",
         "channels.empty": "No channels yet…",
         "campaigns.empty": "Inventory empty…",
         "campaigns.expand": "Expand campaigns",
@@ -89,6 +92,8 @@ _EXTRA: dict[str, dict[str, str]] = {
         "app.tagline": "Twitch 掉宝挖掘器",
         "btn.reload": "重新加载",
         "btn.update": "更新内核",
+        "btn.updating": "更新内核中",
+        "btn.up_to_date": "当前已是最新版本",
         "btn.logout": "退出登录",
         "btn.login": "登录",
         "btn.online": "已登录",
@@ -113,6 +118,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "runtime.cache": "缓存",
         "runtime.expand": "展开运行状态",
         "runtime.collapse": "折叠运行状态",
+        "toast.engine_up_to_date": "当前已是最新版本的内核。",
         "channels.empty": "暂无频道…",
         "campaigns.empty": "库存为空…",
         "campaigns.expand": "展开掉宝活动",
@@ -148,6 +154,8 @@ _EXTRA: dict[str, dict[str, str]] = {
         "app.tagline": "Twitch 掉寶挖掘器",
         "btn.reload": "重新載入",
         "btn.update": "更新核心",
+        "btn.updating": "正在更新核心...",
+        "btn.up_to_date": "核心已是最新版本",
         "btn.logout": "登出",
         "btn.login": "登入",
         "btn.online": "已登入",
@@ -199,6 +207,8 @@ _EXTRA: dict[str, dict[str, str]] = {
     "日本語": {
         "app.tagline": "Twitch ドロップマイナー",
         "btn.reload": "再読み込み",
+        "btn.updating": "エンジンを更新中...",
+        "btn.up_to_date": "エンジンは最新です",
         "btn.login": "ログイン",
         "btn.online": "オンライン",
         "btn.games": "ゲーム",
@@ -241,6 +251,8 @@ _EXTRA: dict[str, dict[str, str]] = {
     "Deutsch": {
         "app.tagline": "Twitch Drops Miner",
         "btn.reload": "Neu laden",
+        "btn.updating": "Engine wird aktualisiert...",
+        "btn.up_to_date": "Engine ist aktuell",
         "btn.login": "Anmelden",
         "btn.online": "Online",
         "btn.games": "Spiele",
@@ -284,6 +296,8 @@ _EXTRA: dict[str, dict[str, str]] = {
     "Français": {
         "app.tagline": "Twitch Drops Miner",
         "btn.reload": "Recharger",
+        "btn.updating": "Mise a jour du moteur...",
+        "btn.up_to_date": "Le moteur est a jour",
         "btn.login": "Se connecter",
         "btn.online": "En ligne",
         "btn.games": "Jeux",
@@ -327,6 +341,8 @@ _EXTRA: dict[str, dict[str, str]] = {
     "Español": {
         "app.tagline": "Twitch Drops Miner",
         "btn.reload": "Recargar",
+        "btn.updating": "Actualizando el motor...",
+        "btn.up_to_date": "El motor esta actualizado",
         "btn.login": "Iniciar sesión",
         "btn.online": "En línea",
         "btn.games": "Juegos",
@@ -370,6 +386,8 @@ _EXTRA: dict[str, dict[str, str]] = {
     "Italiano": {
         "app.tagline": "Twitch Drops Miner",
         "btn.reload": "Ricarica",
+        "btn.updating": "Aggiornamento del motore...",
+        "btn.up_to_date": "Il motore e aggiornato",
         "btn.login": "Accedi",
         "btn.online": "Online",
         "btn.games": "Giochi",
@@ -413,6 +431,8 @@ _EXTRA: dict[str, dict[str, str]] = {
     "Português": {
         "app.tagline": "Twitch Drops Miner",
         "btn.reload": "Recarregar",
+        "btn.updating": "Atualizando o mecanismo...",
+        "btn.up_to_date": "O mecanismo esta atualizado",
         "btn.login": "Entrar",
         "btn.online": "Online",
         "btn.games": "Jogos",
@@ -456,6 +476,8 @@ _EXTRA: dict[str, dict[str, str]] = {
     "Русский": {
         "app.tagline": "Twitch Drops Miner",
         "btn.reload": "Обновить",
+        "btn.updating": "Обновление движка...",
+        "btn.up_to_date": "Движок обновлен",
         "btn.login": "Войти",
         "btn.online": "В сети",
         "btn.games": "Игры",
@@ -499,6 +521,8 @@ _EXTRA: dict[str, dict[str, str]] = {
     "Türkçe": {
         "app.tagline": "Twitch Drops Miner",
         "btn.reload": "Yeniden yükle",
+        "btn.updating": "Motor güncelleniyor...",
+        "btn.up_to_date": "Motor güncel",
         "btn.login": "Giriş yap",
         "btn.online": "Çevrimiçi",
         "btn.games": "Oyunlar",
@@ -542,6 +566,8 @@ _EXTRA: dict[str, dict[str, str]] = {
     "Polski": {
         "app.tagline": "Twitch Drops Miner",
         "btn.reload": "Odśwież",
+        "btn.updating": "Aktualizowanie silnika...",
+        "btn.up_to_date": "Silnik jest aktualny",
         "btn.login": "Zaloguj się",
         "btn.online": "Online",
         "btn.games": "Gry",
@@ -585,6 +611,8 @@ _EXTRA: dict[str, dict[str, str]] = {
     "Nederlandse": {
         "app.tagline": "Twitch Drops Miner",
         "btn.reload": "Herladen",
+        "btn.updating": "Engine wordt bijgewerkt...",
+        "btn.up_to_date": "Engine is up-to-date",
         "btn.login": "Inloggen",
         "btn.online": "Online",
         "btn.games": "Games",
@@ -628,6 +656,8 @@ _EXTRA: dict[str, dict[str, str]] = {
     "Dansk": {
         "app.tagline": "Twitch Drops Miner",
         "btn.reload": "Genindlæs",
+        "btn.updating": "Opdaterer motor...",
+        "btn.up_to_date": "Motoren er opdateret",
         "btn.login": "Log ind",
         "btn.online": "Online",
         "btn.games": "Spil",
@@ -671,6 +701,8 @@ _EXTRA: dict[str, dict[str, str]] = {
     "Norsk": {
         "app.tagline": "Twitch Drops Miner",
         "btn.reload": "Last inn på nytt",
+        "btn.updating": "Oppdaterer motor...",
+        "btn.up_to_date": "Motoren er oppdatert",
         "btn.login": "Logg inn",
         "btn.online": "Pålogget",
         "btn.games": "Spill",
@@ -714,6 +746,8 @@ _EXTRA: dict[str, dict[str, str]] = {
     "Čeština": {
         "app.tagline": "Twitch Drops Miner",
         "btn.reload": "Znovu načíst",
+        "btn.updating": "Aktualizace enginu...",
+        "btn.up_to_date": "Engine je aktuální",
         "btn.login": "Přihlásit se",
         "btn.online": "Online",
         "btn.games": "Hry",
@@ -757,6 +791,8 @@ _EXTRA: dict[str, dict[str, str]] = {
     "Magyar": {
         "app.tagline": "Twitch Drops Miner",
         "btn.reload": "Újratöltés",
+        "btn.updating": "Motor frissítése...",
+        "btn.up_to_date": "A motor naprakész",
         "btn.login": "Bejelentkezés",
         "btn.online": "Online",
         "btn.games": "Játékok",
@@ -800,6 +836,8 @@ _EXTRA: dict[str, dict[str, str]] = {
     "Română": {
         "app.tagline": "Twitch Drops Miner",
         "btn.reload": "Reîncarcă",
+        "btn.updating": "Se actualizează motorul...",
+        "btn.up_to_date": "Motorul este actualizat",
         "btn.login": "Autentificare",
         "btn.online": "Online",
         "btn.games": "Jocuri",
@@ -843,6 +881,8 @@ _EXTRA: dict[str, dict[str, str]] = {
     "Українська": {
         "app.tagline": "Twitch Drops Miner",
         "btn.reload": "Оновити",
+        "btn.updating": "Оновлення рушія...",
+        "btn.up_to_date": "Рушій оновлено",
         "btn.login": "Увійти",
         "btn.online": "У мережі",
         "btn.games": "Ігри",
@@ -886,6 +926,8 @@ _EXTRA: dict[str, dict[str, str]] = {
     "العربية": {
         "app.tagline": "Twitch Drops Miner",
         "btn.reload": "إعادة التحميل",
+        "btn.updating": "جارٍ تحديث المحرك...",
+        "btn.up_to_date": "المحرك محدّث",
         "btn.login": "تسجيل الدخول",
         "btn.online": "متصل",
         "btn.games": "الألعاب",
@@ -929,6 +971,8 @@ _EXTRA: dict[str, dict[str, str]] = {
     "Indonesian": {
         "app.tagline": "Twitch Drops Miner",
         "btn.reload": "Muat ulang",
+        "btn.updating": "Memperbarui mesin...",
+        "btn.up_to_date": "Mesin sudah versi terbaru",
         "btn.login": "Masuk",
         "btn.online": "Daring",
         "btn.games": "Game",
