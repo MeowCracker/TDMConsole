@@ -18,7 +18,10 @@ class CampaignSnapshotTests(unittest.TestCase):
             upcoming=False,
             drops=[
                 SimpleNamespace(
-                    benefits=[SimpleNamespace(name="Hat"), SimpleNamespace(name="Emote")],
+                    benefits=[
+                        SimpleNamespace(name="Hat", image_url="https://example.test/hat.png"),
+                        SimpleNamespace(name="Emote", image_url="https://example.test/emote.png"),
+                    ],
                     is_claimed=False,
                     progress=0.25,
                     current_minutes=15,
@@ -31,7 +34,10 @@ class CampaignSnapshotTests(unittest.TestCase):
 
         self.assertEqual(result["game"], "Example Game")
         self.assertEqual(result["drops"], [{
-            "rewards": ["Hat", "Emote"],
+            "rewards": [
+                {"name": "Hat", "image": "https://example.test/hat.png"},
+                {"name": "Emote", "image": "https://example.test/emote.png"},
+            ],
             "claimed": False,
             "progress": 0.25,
             "currentMinutes": 15,

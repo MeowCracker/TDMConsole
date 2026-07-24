@@ -404,8 +404,15 @@ body.campaigns-expanded { overflow: hidden; }
   padding-top: var(--s3); border-top: 1px solid var(--outline-variant);
 }
 .campaign-drop { display: flex; flex-direction: column; gap: 6px; }
-.campaign-drop-head { display: flex; justify-content: space-between; gap: var(--s3); align-items: baseline; }
-.campaign-drop-rewards { min-width: 0; color: var(--on-surface); font-size: var(--t-sm); overflow-wrap: anywhere; }
+.campaign-drop-head { display: flex; justify-content: space-between; gap: var(--s3); align-items: flex-start; }
+.campaign-drop-rewards { display: flex; flex: 1; flex-wrap: wrap; gap: var(--s2) var(--s3); min-width: 0; }
+.campaign-reward { display: inline-flex; min-width: 0; align-items: center; gap: var(--s2); color: var(--on-surface); font-size: var(--t-sm); }
+.campaign-reward-image {
+  flex: 0 0 auto; width: 40px; height: 40px; object-fit: contain;
+  border: 1px solid var(--outline-variant); border-radius: var(--radius-xs);
+  background: var(--surface-container-highest);
+}
+.campaign-reward-name { min-width: 0; overflow-wrap: anywhere; }
 .campaign-drop-status { flex: 0 0 auto; color: var(--on-surface-variant); font-family: var(--font-mono); font-size: var(--t-xs); white-space: nowrap; }
 .campaign-drop-status.claimed { color: var(--success); font-family: var(--font); font-weight: 500; }
 .campaign-drop-meter { height: 4px; overflow: hidden; border-radius: 999px; background: var(--surface-container-highest); }

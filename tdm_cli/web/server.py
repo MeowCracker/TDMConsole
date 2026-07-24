@@ -214,7 +214,10 @@ def _campaign_snapshot(campaign: Any) -> dict[str, Any]:
         "upcoming": campaign.upcoming,
         "drops": [
             {
-                "rewards": [benefit.name for benefit in drop.benefits],
+                "rewards": [
+                    {"name": benefit.name, "image": str(benefit.image_url)}
+                    for benefit in drop.benefits
+                ],
                 "claimed": drop.is_claimed,
                 "progress": drop.progress,
                 "currentMinutes": drop.current_minutes,

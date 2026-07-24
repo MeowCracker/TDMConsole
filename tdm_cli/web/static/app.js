@@ -395,10 +395,28 @@ function renderCampaigns(cps) {
         c.drops.forEach((drop) => {
           const row = el("div", "campaign-drop");
           const head = el("div", "campaign-drop-head");
-          const rewards = drop.rewards && drop.rewards.length
-            ? drop.rewards.join(" · ")
-            : t("campaigns.rewards_empty", "Reward details unavailable");
-          head.append(el("span", "campaign-drop-rewards", rewards));
+          const rewards = el("div", "campaign-drop-rewards");
+          if (drop.rewards && drop.rewards.length) {
+            drop.rewards.forEach((reward) => {
+              const name = typeof reward === "string" ? reward : reward.name;
+              const item = el("div", "campaign-reward");
+              if (typeof reward !== "string" && reward.image) {
+                const image = document.createElement("img");
+                image.className = "campaign-reward-image";
+                image.src = reward.image;
+                image.alt = "";
+                image.loading = "lazy";
+                image.decoding = "async";
+                image.onerror = () => image.remove();
+                item.append(image);
+              }
+              item.append(el("span", "campaign-reward-name", name));
+              rewards.append(item);
+            });
+          } else {
+            rewards.append(el("span", "campaign-drop-empty", t("campaigns.rewards_empty", "Reward details unavailable")));
+          }
+          head.append(rewards);
           const current = Number(drop.currentMinutes) || 0;
           const required = Number(drop.requiredMinutes) || 0;
           const status = drop.claimed
