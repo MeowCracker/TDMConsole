@@ -226,6 +226,55 @@ body {
 }
 .campaign-expand { flex: 0 0 auto; }
 
+/* --- floating process runtime ------------------------------------------ */
+.runtime-window {
+  position: fixed; right: var(--s6); bottom: var(--s6); z-index: 30;
+  width: min(360px, calc(100vw - var(--s6) - var(--s6)));
+  border-radius: var(--radius); background: var(--surface-container-low);
+  box-shadow: var(--elev-4); overflow: hidden;
+}
+.runtime-window-header {
+  display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s3) var(--s3) var(--s4);
+}
+.runtime-window-heading { display: flex; flex: 1; min-width: 0; align-items: baseline; gap: var(--s3); }
+.runtime-window-title {
+  flex: 0 0 auto; margin: 0; color: var(--on-surface); font-family: var(--font-display);
+  font-size: var(--t-md); font-weight: 500;
+}
+.runtime-summary {
+  min-width: 0; overflow: hidden; color: var(--on-surface-variant); font-size: var(--t-xs);
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.runtime-body {
+  max-height: 360px; padding: 0 var(--s4) var(--s4); opacity: 1;
+  transition: max-height .2s ease, opacity .16s ease, padding .2s ease;
+}
+.runtime-details {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3);
+  margin: 0;
+}
+.runtime-item {
+  min-width: 0; padding-bottom: var(--s2);
+  border-bottom: 1px solid var(--outline-variant);
+}
+.runtime-item dt {
+  margin-bottom: 2px; color: var(--on-surface-variant); font-size: var(--t-xs);
+  letter-spacing: .5px; text-transform: uppercase;
+}
+.runtime-item dd {
+  min-width: 0; margin: 0; overflow-wrap: anywhere; color: var(--on-surface);
+  font-size: var(--t-sm);
+}
+.runtime-item:nth-child(7) { grid-column: 1 / -1; }
+.runtime-window.is-collapsed .runtime-body {
+  max-height: 0; padding-top: 0; padding-bottom: 0; opacity: 0; overflow: hidden;
+}
+@media (max-width: 500px) {
+  .runtime-window { right: var(--s3); bottom: var(--s3); width: calc(100vw - var(--s3) - var(--s3)); }
+  .runtime-details { grid-template-columns: 1fr; }
+  .runtime-item:nth-child(7) { grid-column: auto; }
+}
+
 /* --- now mining + gauges ------------------------------------------------- */
 .now-mining { display: flex; gap: var(--s3); flex-wrap: wrap; margin-bottom: var(--s4); }
 .chip {

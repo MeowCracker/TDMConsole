@@ -17,6 +17,8 @@ let modalKind = null;     // "login" | "games" | "settings" | null
 let campaignsExpanded = false;
 let campaignTransitioning = false;
 let campaignCollapseTimer = null;
+const RUNTIME_COLLAPSED_KEY = "tdm-runtime-collapsed";
+let runtimeCollapsed = localStorage.getItem(RUNTIME_COLLAPSED_KEY) === "true";
 
 /* ---- theming: accent colour is user-overridable, persisted locally ------ */
 const THEME_KEY = "tdm-accent";
@@ -164,6 +166,7 @@ function applyStaticI18n() {
   }
   $("btn-logout").hidden = !META.authEnabled;
   updateCampaignExpandButton();
+  updateRuntimeToggle();
 }
 async function initMeta() {
   try {
@@ -180,6 +183,56 @@ async function initMeta() {
       LANGS = m.languages || [];
     }
   } catch { /* offline meta — non-fatal */ }
+}
+
+function renderRuntime(runtime) {
+  if (!runtime) return;
+  $("runtime-uptime").textContent = runtime.uptime || "—";
+  $("runtime-started").textContent = runtime.startedAt
+    ? new Date(runtime.startedAt).toLocaleString() : "—";
+  $("runtime-version").textContent = runtime.version || "—";
+  const engine = runtime.engine || {};
+  $("runtime-engine").textContent = engine.version
+    ? `${engine.version}${engine.commit && engine.commit !== "unknown" ? ` @ ${engine.commit}` : ""}`
+    : "—";
+  $("runtime-cpu").textContent = runtime.cpu && runtime.cpu.usage || "—";
+  $("runtime-memory").textContent = runtime.memory && runtime.memory.usage || "—";
+  $("runtime-cache").textContent = runtime.cache && runtime.cache.size || "—";
+  $("runtime-summary").textContent = runtime.cpu && runtime.memory
+    ? `${runtime.cpu.usage} · ${runtime.memory.usage}` : "—";
+}
+
+function updateRuntimeToggle() {
+  const window = $("runtime-window");
+  const body = $("runtime-body");
+  const button = $("btn-runtime-toggle");
+  const label = runtimeCollapsed
+    ? t("runtime.expand", "Expand runtime")
+    : t("runtime.collapse", "Collapse runtime");
+  window.classList.toggle("is-collapsed", runtimeCollapsed);
+  body.setAttribute("aria-hidden", String(runtimeCollapsed));
+  button.setAttribute("aria-expanded", String(!runtimeCollapsed));
+  button.setAttribute("aria-label", label);
+  button.title = label;
+  const icon = button.querySelector("use");
+  if (icon) icon.setAttribute("href", runtimeCollapsed ? "#i-chevron-up" : "#i-chevron-down");
+}
+
+function toggleRuntime() {
+  runtimeCollapsed = !runtimeCollapsed;
+  localStorage.setItem(RUNTIME_COLLAPSED_KEY, String(runtimeCollapsed));
+  updateRuntimeToggle();
+}
+
+async function refreshRuntime() {
+  try {
+    const response = await fetch("/runtime", { credentials: "same-origin" });
+    if (response.status === 401) {
+      redirectToLogin();
+      return;
+    }
+    if (response.ok) renderRuntime(await response.json());
+  } catch { /* transient failures do not interrupt mining controls */ }
 }
 
 /* ---- WebSocket with auto-reconnect ------------------------------------- */
@@ -806,10 +859,13 @@ async function start() {
     await initMeta();                 // /meta → languages, repo, version
     await loadLang(pickLang());       // /i18n/<lang> → current catalogue
     applyStaticI18n();                // translate the static shell
+    await refreshRuntime();
+    window.setInterval(refreshRuntime, 5000);
   } catch (e) {
     // i18n is best-effort; the UI still works in English if it fails.
   }
   connect();
 }
 
+$("btn-runtime-toggle").onclick = toggleRuntime;
 start();

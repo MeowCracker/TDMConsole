@@ -11,6 +11,8 @@ from tdm_cli.web.server import (
     SESSION_TTL_SECONDS,
     _AUTH_EXPIRES_AT,
     _MemorySessions,
+    WebServer,
+    _runtime_payload,
     _login_response,
     _session_auth_middleware,
 )
@@ -89,11 +91,22 @@ class SessionMiddlewareTests(unittest.IsolatedAsyncioTestCase):
         self.assertIs(response, expected)
         handler.assert_awaited_once_with(request)
 
+    async def test_allows_public_healthcheck(self) -> None:
+        middleware = _session_auth_middleware(_MemorySessions("admin", "secret"))
+        request = make_mocked_request("GET", "/healthcheck")
+        expected = web.Response(text="ok")
+        handler = AsyncMock(return_value=expected)
+
+        response = await middleware(request, handler)
+
+        self.assertIs(response, expected)
+        handler.assert_awaited_once_with(request)
+
     async def test_rejects_unauthenticated_api_and_websocket(self) -> None:
         middleware = _session_auth_middleware(_MemorySessions("admin", "secret"))
         handler = AsyncMock(return_value=web.Response(text="ok"))
 
-        api_response = await middleware(make_mocked_request("GET", "/meta"), handler)
+        api_response = await middleware(make_mocked_request("GET", "/runtime"), handler)
         ws_response = await middleware(make_mocked_request("GET", "/ws"), handler)
 
         self.assertEqual(api_response.status, 401)
@@ -117,6 +130,53 @@ class SessionMiddlewareTests(unittest.IsolatedAsyncioTestCase):
         self.assertIs(response, expected)
         self.assertIn(_AUTH_EXPIRES_AT, request)
         handler.assert_awaited_once_with(request)
+
+
+class HealthcheckTests(unittest.IsolatedAsyncioTestCase):
+    @patch("tdm_cli.web.server._cache_size_bytes", return_value=768 * 1024 * 1024)
+    @patch("tdm_cli.web.server._cgroup_memory_limit", return_value=2 * 1024**3)
+    @patch("tdm_cli.web.server._process_rss_bytes", return_value=768 * 1024 * 1024)
+    @patch("tdm_cli.web.server._cgroup_vcpu_limit", return_value=0.2)
+    @patch("tdm_cli.web.server.time.time", return_value=1_700_003_661.0)
+    @patch("tdm_cli.versioning.version_info")
+    def test_payload_reports_versions_and_resources(
+        self,
+        version_info: unittest.mock.Mock,
+        *_mocks: unittest.mock.Mock,
+    ) -> None:
+        version_info.return_value = {
+            "app": "1.2.3",
+            "engine": "2.4.5",
+            "engineCommit": "abc1234",
+        }
+
+        payload = _runtime_payload(1_700_000_000.0, 0.125)
+
+        self.assertEqual(payload["uptime"], "1h 1m 1s")
+        self.assertEqual(payload["version"], "1.2.3")
+        self.assertEqual(payload["engine"], {"version": "2.4.5", "commit": "abc1234"})
+        self.assertEqual(payload["cpu"]["usage"], "0.1/0.2 vCPU")
+        self.assertEqual(payload["memory"]["usage"], "768.00M/2.00G")
+        self.assertEqual(payload["cache"], {"size": "768M", "sizeBytes": 768 * 1024 * 1024})
+
+    async def test_healthcheck_returns_plain_ok(self) -> None:
+        server = WebServer.__new__(WebServer)
+        response = await server._handle_healthcheck(make_mocked_request("GET", "/healthcheck"))
+
+        self.assertEqual(response.text, "ok")
+        self.assertEqual(response.content_type, "text/plain")
+        self.assertEqual(response.headers["Cache-Control"], "no-store")
+
+    async def test_runtime_handler_returns_payload_with_no_store_header(self) -> None:
+        server = WebServer.__new__(WebServer)
+        server._started_at = 1_700_000_000.0
+        with patch("tdm_cli.web.server._process_vcpu_usage", return_value=0.0), patch(
+            "tdm_cli.web.server._runtime_payload", return_value={"status": "ok"}
+        ):
+            response = await server._handle_runtime(make_mocked_request("GET", "/runtime"))
+
+        self.assertEqual(response.text, '{"status": "ok"}')
+        self.assertEqual(response.headers["Cache-Control"], "no-store")
 
 
 if __name__ == "__main__":

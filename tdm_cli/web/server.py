@@ -14,8 +14,11 @@ import json
 import asyncio
 import hashlib
 import logging
+import os
 import secrets
+import subprocess
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from contextlib import suppress
 from typing import Any, TYPE_CHECKING
@@ -39,12 +42,181 @@ _AUTH_EXPIRES_AT = web.RequestKey("auth_expires_at", float)
 _PUBLIC_PATHS = frozenset(
     {
         "/login",
+        "/healthcheck",
         "/static/app.css",
         "/static/favicon.png",
         "/static/login.css",
         "/static/login.js",
     }
 )
+
+
+def _format_duration(seconds: float) -> str:
+    total = max(0, int(seconds))
+    days, remainder = divmod(total, 24 * 60 * 60)
+    hours, remainder = divmod(remainder, 60 * 60)
+    minutes, seconds = divmod(remainder, 60)
+    parts: list[str] = []
+    if days:
+        parts.append(f"{days}d")
+    if hours or parts:
+        parts.append(f"{hours}h")
+    if minutes or parts:
+        parts.append(f"{minutes}m")
+    parts.append(f"{seconds}s")
+    return " ".join(parts)
+
+
+def _format_bytes(value: int, *, precision: int | None = None) -> str:
+    amount = max(0, value)
+    for unit in ("B", "K", "M", "G", "T"):
+        if amount < 1024 or unit == "T":
+            if precision is not None:
+                return f"{amount:.{precision}f}{unit}"
+            if unit == "B" or amount >= 10 or amount.is_integer():
+                return f"{amount:.0f}{unit}"
+            return f"{amount:.1f}{unit}"
+        amount /= 1024
+    return "0B"
+
+
+def _read_int(path: Path) -> int | None:
+    try:
+        value = path.read_text(encoding="ascii").strip()
+        return int(value)
+    except (OSError, ValueError):
+        return None
+
+
+def _cgroup_vcpu_limit() -> float | None:
+    try:
+        quota, period = Path("/sys/fs/cgroup/cpu.max").read_text(encoding="ascii").split()
+        if quota != "max" and int(period) > 0:
+            return int(quota) / int(period)
+    except (OSError, ValueError):
+        pass
+
+    quota = _read_int(Path("/sys/fs/cgroup/cpu/cpu.cfs_quota_us"))
+    period = _read_int(Path("/sys/fs/cgroup/cpu/cpu.cfs_period_us"))
+    if quota is not None and period is not None and quota > 0 and period > 0:
+        return quota / period
+    return None
+
+
+def _system_memory_limit() -> int:
+    try:
+        return os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+    except (AttributeError, OSError, ValueError):
+        return 0
+
+
+def _cgroup_memory_limit() -> int:
+    for path in (
+        Path("/sys/fs/cgroup/memory.max"),
+        Path("/sys/fs/cgroup/memory/memory.limit_in_bytes"),
+    ):
+        try:
+            value = path.read_text(encoding="ascii").strip()
+            if value != "max":
+                limit = int(value)
+                if limit > 0:
+                    return limit
+        except (OSError, ValueError):
+            continue
+    return _system_memory_limit()
+
+
+def _process_rss_bytes() -> int:
+    try:
+        for line in Path("/proc/self/status").read_text(encoding="utf-8").splitlines():
+            if line.startswith("VmRSS:"):
+                return int(line.split()[1]) * 1024
+    except (OSError, ValueError, IndexError):
+        pass
+
+    try:
+        result = subprocess.run(
+            ["ps", "-o", "rss=", "-p", str(os.getpid())],
+            capture_output=True,
+            text=True,
+            timeout=1,
+            check=False,
+        )
+        return int(result.stdout.strip()) * 1024
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return 0
+
+
+def _cache_size_bytes() -> int:
+    try:
+        from constants import CACHE_PATH
+
+        cache_path = Path(CACHE_PATH)
+    except (ImportError, AttributeError):
+        cache_path = Path(os.environ.get("TDM_DATA_DIR", "."), "cache")
+
+    total = 0
+    try:
+        for path in cache_path.rglob("*"):
+            if path.is_file():
+                try:
+                    total += path.stat().st_size
+                except OSError:
+                    continue
+    except OSError:
+        pass
+    return total
+
+
+async def _process_vcpu_usage() -> float:
+    start_cpu = time.process_time()
+    start_wall = time.monotonic()
+    await asyncio.sleep(0.1)
+    elapsed = time.monotonic() - start_wall
+    if elapsed <= 0:
+        return 0.0
+    return max(0.0, (time.process_time() - start_cpu) / elapsed)
+
+
+def _runtime_payload(started_at: float, process_vcpus: float) -> dict[str, Any]:
+    from tdm_cli import versioning
+
+    now = time.time()
+    version = versioning.version_info()
+    vcpu_limit = _cgroup_vcpu_limit() or float(os.cpu_count() or 1)
+    rss = _process_rss_bytes()
+    memory_limit = _cgroup_memory_limit()
+    cache_size = _cache_size_bytes()
+    return {
+        "status": "ok",
+        "uptime": _format_duration(now - started_at),
+        "uptimeSeconds": max(0, int(now - started_at)),
+        "startedAt": datetime.fromtimestamp(started_at, timezone.utc)
+        .isoformat()
+        .replace("+00:00", "Z"),
+        "version": version["app"],
+        "engine": {
+            "version": version["engine"],
+            "commit": version["engineCommit"],
+        },
+        "cpu": {
+            "usage": f"{process_vcpus:.1f}/{vcpu_limit:.1f} vCPU",
+            "usedVcpu": round(process_vcpus, 3),
+            "limitVcpu": vcpu_limit,
+        },
+        "memory": {
+            "usage": (
+                f"{_format_bytes(rss, precision=2)}/"
+                f"{_format_bytes(memory_limit, precision=2)}"
+            ),
+            "usedBytes": rss,
+            "limitBytes": memory_limit,
+        },
+        "cache": {
+            "size": _format_bytes(cache_size),
+            "sizeBytes": cache_size,
+        },
+    }
 
 
 class _MemorySessions:
@@ -264,6 +436,7 @@ class WebServer:
         self._broadcast_task: asyncio.Task[None] | None = None
         self._closed = asyncio.Event()
         self._log_cursor = 0
+        self._started_at = time.time()
         # Command output is folded into the shared miner log so every client sees it.
         self._processor = CommandProcessor(
             manager, lambda text, style="": manager.state.add_log(text, style)
@@ -288,6 +461,8 @@ class WebServer:
                 web.get("/session", self._handle_session),
                 web.get("/ws", self._handle_ws),
                 web.get("/static/{name}", self._handle_static),
+                web.get("/healthcheck", self._handle_healthcheck),
+                web.get("/runtime", self._handle_runtime),
                 web.get("/meta", self._handle_meta),
                 web.get("/i18n/{lang}", self._handle_i18n),
             ]
@@ -413,6 +588,20 @@ class WebServer:
                 "languages": i18n.available_languages(),
                 "default": i18n.default_language(),
             },
+            headers=self._NO_STORE,
+        )
+
+    async def _handle_healthcheck(self, request: web.Request) -> web.StreamResponse:
+        return web.Response(
+            text="ok",
+            content_type="text/plain",
+            headers=self._NO_STORE,
+        )
+
+    async def _handle_runtime(self, request: web.Request) -> web.StreamResponse:
+        process_vcpus = await _process_vcpu_usage()
+        return web.json_response(
+            _runtime_payload(self._started_at, process_vcpus),
             headers=self._NO_STORE,
         )
 
