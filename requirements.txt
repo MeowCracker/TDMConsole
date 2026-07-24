@@ -3,4 +3,4 @@
 # Prefer `uv` (see README); this file is provided for reference / non-uv setups.
 aiohttp>=3.9,<4.0
 truststore
-textual>=1.0
+textual>=8.2.8

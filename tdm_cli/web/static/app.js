@@ -14,6 +14,9 @@ let ws = null;
 let seenLog = 0;          // highest log seq rendered (dedup)
 let state = null;         // latest snapshot
 let modalKind = null;     // "login" | "games" | "settings" | null
+let campaignsExpanded = false;
+let campaignTransitioning = false;
+let campaignCollapseTimer = null;
 
 /* ---- theming: accent colour is user-overridable, persisted locally ------ */
 const THEME_KEY = "tdm-accent";
@@ -160,6 +163,7 @@ function applyStaticI18n() {
     ver.textContent = parts.join(" · ");
   }
   $("btn-logout").hidden = !META.authEnabled;
+  updateCampaignExpandButton();
 }
 async function initMeta() {
   try {
@@ -383,8 +387,92 @@ function renderCampaigns(cps) {
     fill.style.width = Math.round((c.progress || 0) * 100) + "%";
     m.append(fill);
     card.append(m);
+    if (campaignsExpanded) {
+      const drops = el("div", "campaign-drop-list");
+      if (!c.drops || !c.drops.length) {
+        drops.append(el("p", "campaign-drop-empty", t("campaigns.rewards_empty", "Reward details unavailable")));
+      } else {
+        c.drops.forEach((drop) => {
+          const row = el("div", "campaign-drop");
+          const head = el("div", "campaign-drop-head");
+          const rewards = drop.rewards && drop.rewards.length
+            ? drop.rewards.join(" · ")
+            : t("campaigns.rewards_empty", "Reward details unavailable");
+          head.append(el("span", "campaign-drop-rewards", rewards));
+          const current = Number(drop.currentMinutes) || 0;
+          const required = Number(drop.requiredMinutes) || 0;
+          const status = drop.claimed
+            ? t("campaigns.drop_claimed", "Claimed")
+            : t("campaigns.drop_progress", "{current} / {required} min")
+              .replace("{current}", current).replace("{required}", required);
+          head.append(el("span", "campaign-drop-status" + (drop.claimed ? " claimed" : ""), status));
+          row.append(head);
+          const meter = el("div", "campaign-drop-meter");
+          const meterFill = el("div");
+          const progress = Math.max(0, Math.min(1, Number(drop.progress) || 0));
+          meterFill.style.width = Math.round(progress * 100) + "%";
+          meter.append(meterFill);
+          row.append(meter);
+          drops.append(row);
+        });
+      }
+      card.append(drops);
+    }
     box.append(card);
   });
+}
+
+function updateCampaignExpandButton() {
+  const btn = $("btn-campaigns-expand");
+  if (!btn) return;
+  const expanded = campaignsExpanded;
+  const label = expanded
+    ? t("campaigns.collapse", "Shrink campaigns")
+    : t("campaigns.expand", "Expand campaigns");
+  const icon = btn.querySelector("use");
+  if (icon) icon.setAttribute("href", expanded ? "#i-collapse-campaigns" : "#i-expand-campaigns");
+  btn.setAttribute("aria-label", label);
+  btn.title = label;
+  btn.disabled = campaignTransitioning;
+}
+
+function expandCampaigns() {
+  if (campaignsExpanded || campaignTransitioning) return;
+  const panel = $("campaigns-panel");
+  if (!panel) return;
+  if (campaignCollapseTimer) {
+    window.clearTimeout(campaignCollapseTimer);
+    campaignCollapseTimer = null;
+  }
+  campaignsExpanded = true;
+  campaignTransitioning = true;
+  document.body.classList.add("campaigns-expanded");
+  panel.classList.add("is-expanded");
+  renderCampaigns(state ? state.campaigns : []);
+  updateCampaignExpandButton();
+  window.requestAnimationFrame(() => {
+    panel.classList.add("is-expanded-visible");
+    campaignTransitioning = false;
+    updateCampaignExpandButton();
+  });
+}
+
+function collapseCampaigns() {
+  if (!campaignsExpanded || campaignTransitioning) return;
+  const panel = $("campaigns-panel");
+  if (!panel) return;
+  campaignTransitioning = true;
+  panel.classList.remove("is-expanded-visible");
+  updateCampaignExpandButton();
+  campaignCollapseTimer = window.setTimeout(() => {
+    panel.classList.remove("is-expanded");
+    document.body.classList.remove("campaigns-expanded");
+    campaignsExpanded = false;
+    campaignTransitioning = false;
+    campaignCollapseTimer = null;
+    renderCampaigns(state ? state.campaigns : []);
+    updateCampaignExpandButton();
+  }, 200);
 }
 
 function appendLog(lines) {
@@ -447,7 +535,9 @@ function closeModal() {
   if (wasLogin) sendAction("login-hide");
 }
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && modalKind) { e.preventDefault(); closeModal(); }
+  if (e.key !== "Escape") return;
+  if (campaignsExpanded) { e.preventDefault(); collapseCampaigns(); }
+  else if (modalKind) { e.preventDefault(); closeModal(); }
 });
 
 function heading(text) { return el("h3", null, text); }
@@ -677,6 +767,10 @@ $("btn-reload").onclick = () => send("/reload");
 $("btn-update").onclick = () => send("/update");
 $("btn-login").onclick = () => send("/login");
 $("login-cta").onclick = () => send("/login");
+$("btn-campaigns-expand").onclick = () => {
+  if (campaignsExpanded) collapseCampaigns();
+  else expandCampaigns();
+};
 $("btn-games").onclick = () => { if (state) openGames(); };
 $("btn-settings").onclick = () => { if (state) openSettings(); };
 $("btn-logout").onclick = async () => {

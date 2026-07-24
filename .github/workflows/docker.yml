@@ -4,6 +4,8 @@ name: Docker image
 # Consumers then just:  docker run -d -p 8080:8080 -v tdm-data:/data ghcr.io/<owner>/tdmconsole
 on:
   workflow_dispatch: {}
+  push:
+    branches: [master]
 
 permissions:
   contents: read

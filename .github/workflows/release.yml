@@ -4,6 +4,8 @@ name: Release binaries
 # the standalone CLI is distributed as a tar.gz archive.
 on:
   workflow_dispatch: {}
+  push:
+    branches: [master]
 
 permissions:
   contents: write   # needed to create/update the Release and upload assets
@@ -78,6 +80,9 @@ jobs:
           uv python install 3.12
           uv sync --frozen --group build --python 3.12
 
+      - name: Run unit tests
+        run: uv run python -m unittest discover -s tests -v
+
       - name: Install DMG tooling
         if: runner.os == 'macOS'
         uses: gerlero/brew-install@v1
@@ -108,6 +113,11 @@ jobs:
       - name: Smoke test (--version must run from the frozen binary)
         if: runner.os != 'Windows'
         run: ./dist/${{ matrix.asset }} --version
+
+      - name: Smoke test (--version must run from the frozen binary)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: '& ".\\dist\\${{ matrix.asset }}" --version'
 
       - name: Archive Unix executable
         if: runner.os != 'Windows'

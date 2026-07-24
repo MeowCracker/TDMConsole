@@ -186,15 +186,7 @@ def snapshot(manager: GUIManager) -> dict[str, Any]:
             for c in twitch.channels.values()
         ],
         "campaigns": [
-            {
-                "game": c.game.name,
-                "name": c.name,
-                "claimed": c.claimed_drops,
-                "total": c.total_drops,
-                "progress": c.progress,
-                "active": c.active,
-                "upcoming": c.upcoming,
-            }
+            _campaign_snapshot(c)
             # Sorted by progress (highest first); stable tiebreak by name.
             for c in sorted(
                 twitch.inventory,
@@ -207,6 +199,29 @@ def snapshot(manager: GUIManager) -> dict[str, Any]:
             "proxy": str(settings.proxy),
             "priorityMode": settings.priority_mode.name,
         },
+    }
+
+
+def _campaign_snapshot(campaign: Any) -> dict[str, Any]:
+    """Return the campaign details needed by the WebUI, without Twitch internals."""
+    return {
+        "game": campaign.game.name,
+        "name": campaign.name,
+        "claimed": campaign.claimed_drops,
+        "total": campaign.total_drops,
+        "progress": campaign.progress,
+        "active": campaign.active,
+        "upcoming": campaign.upcoming,
+        "drops": [
+            {
+                "rewards": [benefit.name for benefit in drop.benefits],
+                "claimed": drop.is_claimed,
+                "progress": drop.progress,
+                "currentMinutes": drop.current_minutes,
+                "requiredMinutes": drop.required_minutes,
+            }
+            for drop in campaign.drops
+        ],
     }
 
 

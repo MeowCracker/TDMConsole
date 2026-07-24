@@ -19,6 +19,8 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 _BUNDLED_ENGINE_DIR = _PROJECT_ROOT / "TwitchDropsMiner"
 _VERSION_MARKER = ".tdm-engine-version"
 _MAX_ARCHIVE_BYTES = 128 * 1024 * 1024
+_MAX_ARCHIVE_MEMBERS = 20_000
+_MAX_EXTRACTED_BYTES = 512 * 1024 * 1024
 
 
 class EngineUpdateError(RuntimeError):
@@ -188,6 +190,11 @@ def _extract_archive(archive: Path, destination: Path) -> None:
     try:
         with tarfile.open(archive, "r:gz") as bundle:
             members = bundle.getmembers()
+            if len(members) > _MAX_ARCHIVE_MEMBERS:
+                raise EngineUpdateError("Engine archive contains too many entries.")
+            extracted_bytes = sum(member.size for member in members if member.isfile())
+            if extracted_bytes > _MAX_EXTRACTED_BYTES:
+                raise EngineUpdateError("Engine archive exceeds the 512 MiB extraction limit.")
             roots = {
                 PurePosixPath(member.name).parts[0]
                 for member in members
