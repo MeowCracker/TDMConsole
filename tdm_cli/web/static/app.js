@@ -407,7 +407,16 @@ function meter(prefix, frac) {
   $(`${prefix}-meter`).setAttribute("aria-valuenow", String(pct));
 }
 
+/* Render-skip signatures (same trick as gamesSig): the broadcast already
+   dedupes server-side, but these also absorb the periodic full resyncs so
+   unchanged sections never rebuild their DOM. Language is part of the
+   signature so setLang() re-renders translated content. */
+let wsSig = "", channelsSig = "", campaignsSig = "";
+
 function renderWs(list) {
+  const sig = JSON.stringify(list || []);
+  if (sig === wsSig) return;
+  wsSig = sig;
   const strip = $("ws-strip");
   strip.replaceChildren();
   (list || []).forEach((w) => {
@@ -421,6 +430,9 @@ function renderWs(list) {
 }
 
 function renderChannels(chs) {
+  const sig = JSON.stringify([getLang(), chs || []]);
+  if (sig === channelsSig) return;
+  channelsSig = sig;
   const body = $("channels-body");
   body.replaceChildren();
   if (!chs || !chs.length) {
@@ -473,6 +485,11 @@ function renderChannels(chs) {
 }
 
 function renderCampaigns(cps) {
+  // campaignsExpanded is in the signature: expand/collapse re-calls this with
+  // the same data and must rebuild the cards with/without drop details.
+  const sig = JSON.stringify([getLang(), campaignsExpanded, cps || []]);
+  if (sig === campaignsSig) return;
+  campaignsSig = sig;
   const box = $("campaigns-cards");
   box.replaceChildren();
   if (!cps || !cps.length) { box.append(el("p", "empty", t("campaigns.empty", "Inventory empty…"))); return; }

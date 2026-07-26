@@ -301,6 +301,9 @@ def _login_response(token: str, *, secure: bool) -> web.Response:
 
 
 def snapshot(manager: GUIManager) -> dict[str, Any]:
+    # NOTE: keep _state_signature() in sync — every field serialized here must
+    # have a change-detection source there, or broadcasts of its changes are
+    # delayed until the periodic full resync.
     """A JSON-serialisable view of the whole miner state for the browser."""
     s = manager.state
     twitch = manager._twitch
@@ -394,6 +397,49 @@ def _campaign_snapshot(campaign: Any) -> dict[str, Any]:
             for drop in campaign.drops
         ],
     }
+
+
+def _state_signature(manager: GUIManager) -> tuple:
+    """Cheap change-detection key for :func:`snapshot`.
+
+    Covers everything the snapshot serializes: the channel/campaign tables are
+    represented by their revision counters (every mutation bumps them — see
+    ``ChannelList._bump`` / ``InventoryOverview``), the rest are plain scalars.
+    If a new field is added to ``snapshot()``, add its source here too —
+    otherwise its changes are only picked up by the periodic full resync.
+    """
+    s = manager.state
+    settings = manager._twitch.settings
+    return (
+        s.status,
+        manager.mode,
+        manager.engine_update_running,
+        manager.engine_update_result,
+        s.login_available,
+        s.login_prompt,
+        s.login_url,
+        s.login_code,
+        s.user_id,
+        s.login_status,
+        s.watching_channel,
+        s.watching_game,
+        s.drop_rewards,
+        s.drop_progress,
+        s.drop_remaining,
+        s.campaign_name,
+        s.campaign_game,
+        s.campaign_progress,
+        s.campaign_claimed,
+        s.campaign_total,
+        s.campaign_remaining,
+        tuple(sorted(s.websockets.items())),
+        s.channels_rev,
+        s.inventory_rev,
+        tuple(settings.priority),
+        tuple(sorted(settings.exclude)),
+        str(settings.proxy),
+        settings.priority_mode.name,
+    )
 
 
 def _log_payload(entries) -> dict[str, Any]:
@@ -568,15 +614,21 @@ class WebServer:
         )
 
     async def _handle_static(self, request: web.Request) -> web.StreamResponse:
-        # Serve app.css / app.js with no-store so edits are always picked up
-        # (a stale cached stylesheet was leaving the modal overlay on screen).
+        # Versioned references (index.html links assets as app.js?v=N) can be
+        # cached forever — bump the ?v= whenever the file changes. Unversioned
+        # requests stay no-store so edits are always picked up (a stale cached
+        # stylesheet once left the modal overlay on screen).
         name = request.match_info["name"]
         if "/" in name or "\\" in name or ".." in name:
             raise web.HTTPNotFound()
         path = STATIC_DIR / name
         if not path.is_file():
             raise web.HTTPNotFound()
-        return web.FileResponse(path, headers=self._NO_STORE)
+        if request.query.get("v"):
+            headers = {"Cache-Control": "public, max-age=31536000, immutable"}
+        else:
+            headers = self._NO_STORE
+        return web.FileResponse(path, headers=headers)
 
     async def _handle_meta(self, request: web.Request) -> web.StreamResponse:
         from tdm_cli.web import i18n
@@ -696,7 +748,14 @@ class WebServer:
                 self._m.state.login_prompt = False
 
     # broadcast ---------------------------------------------------------------
+    # Safety net: even with no detected change, resend a full snapshot this
+    # often — covers any field that mutates without moving _state_signature()
+    # (mirrors the TUI's periodic table rebuild).
+    FULL_RESYNC_SECONDS = 10.0
+
     async def _broadcast_loop(self) -> None:
+        last_sig: tuple | None = None
+        last_full = 0.0
         try:
             while True:
                 await asyncio.sleep(0.5)
@@ -705,17 +764,29 @@ class WebServer:
                     if self._m.state.log_lines:
                         self._log_cursor = self._m.state.log_lines[-1].seq
                     continue
-                state_msg = {"type": "state", "data": snapshot(self._m)}
+                # Only serialize + push the (potentially large) snapshot when
+                # the state actually changed; logs stream independently below.
+                now = time.monotonic()
+                sig = _state_signature(self._m)
+                if sig != last_sig or now - last_full >= self.FULL_RESYNC_SECONDS:
+                    state_msg = {"type": "state", "data": snapshot(self._m)}
+                    last_sig = sig
+                    last_full = now
+                else:
+                    state_msg = None
                 new_logs = self._m.state.logs_since(self._log_cursor)
                 if new_logs:
                     self._log_cursor = new_logs[-1].seq
                     log_msg = _log_payload(new_logs)
                 else:
                     log_msg = None
+                if state_msg is None and log_msg is None:
+                    continue
                 dead: list[web.WebSocketResponse] = []
                 for ws in self._clients:
                     try:
-                        await ws.send_json(state_msg)
+                        if state_msg is not None:
+                            await ws.send_json(state_msg)
                         if log_msg is not None:
                             await ws.send_json(log_msg)
                     except Exception:
