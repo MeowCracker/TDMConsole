@@ -26,6 +26,10 @@ from tdm_cli import __version__ as APP_VERSION
 _HERE = Path(__file__).resolve().parent
 _SUBMODULE = _HERE.parent / "TwitchDropsMiner"
 
+# Marker file the updater writes into a downloaded engine snapshot; holds the
+# full commit hash. Shared with tdm_cli.updater — keep a single definition.
+ENGINE_VERSION_MARKER = ".tdm-engine-version"
+
 
 def _active_engine_dir() -> Path:
     external = os.environ.get("TDM_ENGINE_DIR")
@@ -73,7 +77,7 @@ def _git_hash() -> str | None:
 
 
 def _snapshot_hash() -> str | None:
-    marker = _active_engine_dir() / ".tdm-engine-version"
+    marker = _active_engine_dir() / ENGINE_VERSION_MARKER
     try:
         value = marker.read_text(encoding="ascii").strip()
     except OSError:

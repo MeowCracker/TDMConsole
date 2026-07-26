@@ -1,0 +1,42 @@
+name: CI
+
+# Fast test pass on every push/PR. Unlike release/docker, the submodule stays
+# at the PINNED commit here — this validates the code against the version the
+# repo actually records (the release workflows separately check the latest
+# upstream before shipping).
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (pinned submodule)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install Python and locked dependencies
+        run: |
+          uv python install 3.12
+          uv sync --frozen --group test --python 3.12
+
+      - name: Run unit tests
+        run: uv run pytest tests -v
+
+      - name: Verify gui shim contract against pinned upstream
+        run: uv run python main.py --check-contract

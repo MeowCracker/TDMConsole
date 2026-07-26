@@ -1003,8 +1003,6 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "aiohttp" },
-    { name = "pillow" },
-    { name = "pystray" },
     { name = "textual" },
     { name = "truststore" },
 ]
@@ -1013,6 +1011,10 @@ dependencies = [
 build = [
     { name = "pyinstaller" },
 ]
+gui = [
+    { name = "pillow" },
+    { name = "pystray" },
+]
 test = [
     { name = "pytest" },
 ]
@@ -1020,14 +1022,16 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.9,<4.0" },
-    { name = "pillow" },
-    { name = "pystray" },
     { name = "textual", specifier = ">=8.2.8" },
     { name = "truststore" },
 ]
 
 [package.metadata.requires-dev]
 build = [{ name = "pyinstaller", specifier = ">=6.0,<7.0" }]
+gui = [
+    { name = "pillow" },
+    { name = "pystray" },
+]
 test = [{ name = "pytest", specifier = ">=8" }]
 
 [[package]]

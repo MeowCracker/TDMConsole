@@ -199,18 +199,12 @@ class CommandProcessor:
         name = " ".join(args).strip().lower()
         for ch in self._m._twitch.channels.values():
             if ch.name.lower() == name:
-                self._m.channels.select(ch)
-                self._m.print(f"Pinned channel: {ch.name} — switching...")
-                self._m._twitch.change_state(self._state_enum().CHANNEL_SWITCH)
+                self._m.pin_channel(ch)
                 return
         self._out(f"No known channel named {name!r}. Try /channels.", "warn")
 
     def _cmd_unpin(self, args: list[str]) -> None:
-        if self._m.channels.get_selection() is not None:
-            self._m.channels.clear_selection()
-            self._m.print("Unpinned — automatic channel selection resumes.")
-            self._m._twitch.change_state(self._state_enum().CHANNEL_SWITCH)
-        else:
+        if not self._m.unpin_channel():
             self._out("No channel is pinned.", "dim")
 
     def _cmd_proxy(self, args: list[str]) -> None:

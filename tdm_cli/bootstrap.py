@@ -132,7 +132,13 @@ def _patch_constants(settings_path: str | None, cookies_path: str | None) -> Non
         try:
             d.mkdir(parents=True, exist_ok=True)
         except OSError:
-            pass
+            # Surface it at debug level — a failure here otherwise resurfaces
+            # later as a much more confusing write error somewhere else.
+            import logging
+
+            logging.getLogger("TwitchDrops").debug(
+                "Could not create data dir %s", d, exc_info=True
+            )
         constants.WORKING_DIR = d
         constants.SETTINGS_PATH = Path(d, "settings.json")
         constants.COOKIES_PATH = Path(d, "cookies.jar")

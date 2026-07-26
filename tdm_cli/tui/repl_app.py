@@ -37,7 +37,7 @@ from tdm_cli import __version__
 from tdm_cli.versioning import engine_version, engine_commit
 
 from tdm_cli.commands import COMMANDS, CommandProcessor
-from tdm_cli.tui.screens import LoginScreen
+from tdm_cli.tui.screens import LoginScreen, sync_login_modal
 
 if TYPE_CHECKING:
     from tdm_cli.gui import GUIManager
@@ -244,16 +244,7 @@ class ReplApp(App[None]):
         self.query_one("#status-line", Static).update(grid)
 
         # Device-code login modal (same behaviour as the dashboard).
-        if state.login_prompt and self._login_screen is None:
-            self._login_screen = LoginScreen(self._m)
-            self.push_screen(self._login_screen)
-        elif not state.login_prompt and self._login_screen is not None:
-            screen, self._login_screen = self._login_screen, None
-            try:
-                if screen in self.screen_stack:
-                    screen.dismiss()
-            except Exception:
-                self._login_screen = screen  # not on top; retry next tick
+        self._login_screen = sync_login_modal(self, self._m, self._login_screen)
 
     # ---------------------------------------------------------------- input
     def on_input_submitted(self, event: Input.Submitted) -> None:

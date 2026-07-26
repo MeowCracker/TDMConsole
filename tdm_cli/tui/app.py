@@ -30,7 +30,7 @@ from textual.widgets import DataTable, Footer, RichLog, Static
 
 from constants import State
 
-from tdm_cli.tui.screens import LoginScreen, GamesScreen, SettingsScreen
+from tdm_cli.tui.screens import LoginScreen, GamesScreen, SettingsScreen, sync_login_modal
 
 if TYPE_CHECKING:
     from tdm_cli.gui import GUIManager
@@ -151,17 +151,7 @@ class MinerApp(App[None]):
             log_widget.write(line)
 
         # Device-code login modal
-        if state.login_prompt and self._login_screen is None:
-            self._login_screen = LoginScreen(self._m)
-            self.push_screen(self._login_screen)
-        elif not state.login_prompt and self._login_screen is not None:
-            screen, self._login_screen = self._login_screen, None
-            try:
-                if screen in self.screen_stack:
-                    screen.dismiss()
-            except Exception:
-                # Not on top right now — retry on the next tick.
-                self._login_screen = screen
+        self._login_screen = sync_login_modal(self, self._m, self._login_screen)
 
         # Tables
         safety = self._ticks % TABLE_REBUILD_TICKS == 0
@@ -259,15 +249,10 @@ class MinerApp(App[None]):
         channel = self._m._twitch.channels.get(channel_id)
         if channel is None:
             return
-        self._m.channels.select(channel)
-        self._m.print(f"Pinned channel: {channel.name} — switching...")
-        self._m._twitch.change_state(State.CHANNEL_SWITCH)
+        self._m.pin_channel(channel)
 
     def action_unpin(self) -> None:
-        if self._m.channels.get_selection() is not None:
-            self._m.channels.clear_selection()
-            self._m.print("Unpinned — automatic channel selection resumes.")
-            self._m._twitch.change_state(State.CHANNEL_SWITCH)
+        self._m.unpin_channel()
 
     def action_quit_miner(self) -> None:
         self._m.print("Quit requested, shutting down...")

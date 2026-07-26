@@ -25,4 +25,4 @@ tdm_cli/_build_info.py
 *.zip
 
 # MacOS Shits
-*.DS_Store
+.DS_Store

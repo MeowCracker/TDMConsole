@@ -350,8 +350,12 @@ if __name__ == "__main__":
         if _read_valid_cookie_bytes(jar_path) is None:
             try:
                 jar_path.write_bytes(backup)
-            except OSError:
-                pass
+            except OSError as exc:
+                # Logging may already be shut down at this point — stderr it.
+                print(
+                    f"Warning: could not restore cookies.jar backup: {exc}",
+                    file=sys.stderr,
+                )
 
     # `mode` was resolved earlier (before the upstream `twitch` import, so the
     # GUI shim decision could be made). Here we just wire mode-specific config.

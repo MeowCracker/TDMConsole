@@ -13,7 +13,32 @@ from textual.widgets import Button, Input, Label, OptionList, Select, Static
 from constants import State, PriorityMode, LANG_PATH, DEFAULT_LANG
 
 if TYPE_CHECKING:
+    from textual.app import App
+
     from tdm_cli.gui import GUIManager
+
+
+def sync_login_modal(
+    app: App, manager: GUIManager, current: LoginScreen | None
+) -> LoginScreen | None:
+    """Push/dismiss the login modal to match ``state.login_prompt``.
+
+    Called from each app's render tick; returns the new tracked screen (both
+    the dashboard and the REPL keep it in ``self._login_screen``).
+    """
+    prompt = manager.state.login_prompt
+    if prompt and current is None:
+        current = LoginScreen(manager)
+        app.push_screen(current)
+    elif not prompt and current is not None:
+        screen, current = current, None
+        try:
+            if screen in app.screen_stack:
+                screen.dismiss()
+        except Exception:
+            # Not on top right now — retry on the next tick.
+            current = screen
+    return current
 
 
 class LoginScreen(ModalScreen[None]):

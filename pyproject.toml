@@ -8,16 +8,15 @@ dependencies = [
     "aiohttp>=3.9,<4.0",
     "textual>=8.2.8",
     "truststore",
-    # GUI mode (--mode gui) runs upstream's native tkinter window, which needs
-    # these; the other four frontends never import them (bootstrap stubs them
-    # out when absent). tkinter itself ships with CPython.
-    "Pillow",
-    "pystray",
 ]
 
 [tool.uv]
 # This is an application, not an installable library — don't try to build it.
 package = false
+# Source checkouts get the GUI deps by default (plain `uv sync` keeps --mode gui
+# working); the Docker image opts out with --no-default-groups since it only
+# runs web mode.
+default-groups = ["gui"]
 
 [tool.pytest.ini_options]
 # The app is never installed (package = false) — put the repo root on sys.path
@@ -26,6 +25,13 @@ pythonpath = ["."]
 testpaths = ["tests"]
 
 [dependency-groups]
+# GUI mode (--mode gui) runs upstream's native tkinter window, which needs
+# these; the other four frontends never import them (bootstrap stubs them
+# out when absent). tkinter itself ships with CPython.
+gui = [
+    "Pillow",
+    "pystray",
+]
 build = [
     "pyinstaller>=6.0,<7.0",
 ]

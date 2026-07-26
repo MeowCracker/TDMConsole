@@ -19,8 +19,10 @@ RUN apt-get update \
 WORKDIR /app
 
 # Install dependencies first (cached layer) from the lock file.
+# --no-default-groups skips the gui group (Pillow/pystray) — the container only
+# runs web mode and bootstrap stubs those imports when absent.
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-install-project
+RUN uv sync --frozen --no-install-project --no-default-groups
 
 # Application code + the pristine upstream submodule.
 COPY tdm_cli ./tdm_cli

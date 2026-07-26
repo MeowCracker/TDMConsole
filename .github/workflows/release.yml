@@ -7,6 +7,12 @@ on:
   push:
     branches: [master]
 
+# Consecutive pushes race each other on the release job otherwise; every push
+# has its own build-<sha> tag, so cancelling an outdated run is safe.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write   # needed to create/update the Release and upload assets
 
@@ -78,10 +84,15 @@ jobs:
       - name: Install Python and locked dependencies
         run: |
           uv python install 3.12
-          uv sync --frozen --group build --python 3.12
+          uv sync --frozen --group build --group test --python 3.12
 
       - name: Run unit tests
-        run: uv run python -m unittest discover -s tests -v
+        run: uv run pytest tests -v
+
+      # The submodule was just pulled to the latest upstream — verifying the
+      # gui-shim contract here catches upstream interface drift before release.
+      - name: Verify gui shim contract against upstream
+        run: uv run python main.py --check-contract
 
       - name: Install DMG tooling
         if: runner.os == 'macOS'

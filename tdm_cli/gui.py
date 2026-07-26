@@ -532,7 +532,6 @@ class InventoryOverview:
 class SettingsPanel:
     def __init__(self, manager: GUIManager):
         self._manager = manager
-        self._settings = manager._twitch.settings
 
     def set_games(self, games: set[Game]) -> None:
         # Games become available for the TUI games screen via twitch.inventory;
@@ -663,6 +662,25 @@ class GUIManager:
             self.print(f"Cannot switch to {mode} mode: no interactive terminal attached.")
             return
         self._switch_task = asyncio.create_task(self._switch_frontend(mode))
+
+    def pin_channel(self, channel: Channel) -> None:
+        """Pin a channel and switch to it — shared by the TUI and /pin."""
+        from constants import State
+
+        self.channels.select(channel)
+        self.print(f"Pinned channel: {channel.name} — switching...")
+        self._twitch.change_state(State.CHANNEL_SWITCH)
+
+    def unpin_channel(self) -> bool:
+        """Resume automatic selection; returns False if nothing was pinned."""
+        from constants import State
+
+        if self.channels.get_selection() is None:
+            return False
+        self.channels.clear_selection()
+        self.print("Unpinned — automatic channel selection resumes.")
+        self._twitch.change_state(State.CHANNEL_SWITCH)
+        return True
 
     def request_engine_update(self) -> bool:
         """Start one non-blocking engine update shared by every CLI frontend."""
