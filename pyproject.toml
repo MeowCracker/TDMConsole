@@ -19,7 +19,16 @@ dependencies = [
 # This is an application, not an installable library — don't try to build it.
 package = false
 
+[tool.pytest.ini_options]
+# The app is never installed (package = false) — put the repo root on sys.path
+# so tests can import tdm_cli directly.
+pythonpath = ["."]
+testpaths = ["tests"]
+
 [dependency-groups]
 build = [
     "pyinstaller>=6.0,<7.0",
+]
+test = [
+    "pytest>=8",
 ]

@@ -79,7 +79,10 @@ def register_frontend(mode: str, factory: Callable[["GUIManager"], Any]) -> None
 
 
 def make_frontend(mode: str, manager: GUIManager) -> Any:
-    factory = FRONTEND_REGISTRY.get(mode) or FRONTEND_REGISTRY["headless"]
+    factory = FRONTEND_REGISTRY.get(mode)
+    if factory is None:
+        logger.warning("No frontend registered for mode %r — falling back to headless", mode)
+        factory = FRONTEND_REGISTRY["headless"]
     return factory(manager)
 
 

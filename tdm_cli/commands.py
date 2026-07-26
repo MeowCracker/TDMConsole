@@ -27,7 +27,7 @@ COMMANDS: dict[str, str] = {
     "/proxy": "/proxy <url|clear> — set or clear the proxy (reloads)",
     "/reload": "re-fetch inventory and channels",
     "/update": "update the engine and restart (source/Docker only)",
-    "/switch-mode": "/switch-mode tui|repl|headless — change interface mode",
+    "/switch-mode": "/switch-mode tui|repl|web|headless — change interface mode (gui requires restart)",
     "/login": "show the pending device-code login prompt again",
     "/quit": "stop mining and exit",
 }
@@ -240,8 +240,14 @@ class CommandProcessor:
     def _cmd_switch_mode(self, args: list[str]) -> None:
         from tdm_cli.prefs import MODES
 
-        if not args or args[0] not in MODES:
-            self._out(f"Usage: /switch-mode {'|'.join(MODES)}", "warn")
+        # The native GUI is a tkinter window owned by upstream — it can't be
+        # hot-swapped into a running CLI session, only chosen at launch.
+        switchable = tuple(m for m in MODES if m != "gui")
+        if args and args[0] == "gui":
+            self._out("The native GUI cannot be switched to live — restart with --mode gui.", "warn")
+            return
+        if not args or args[0] not in switchable:
+            self._out(f"Usage: /switch-mode {'|'.join(switchable)}", "warn")
             return
         target = args[0]
         if target == self._m.mode:

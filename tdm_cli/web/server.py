@@ -168,25 +168,20 @@ def _cache_size_bytes() -> int:
     return total
 
 
-async def _process_vcpu_usage() -> float:
-    start_cpu = time.process_time()
-    start_wall = time.monotonic()
-    await asyncio.sleep(0.1)
-    elapsed = time.monotonic() - start_wall
-    if elapsed <= 0:
-        return 0.0
-    return max(0.0, (time.process_time() - start_cpu) / elapsed)
-
-
-def _runtime_payload(started_at: float, process_vcpus: float) -> dict[str, Any]:
+def _runtime_payload(
+    started_at: float,
+    process_vcpus: float,
+    rss: int,
+    memory_limit: int,
+    cache_size: int,
+) -> dict[str, Any]:
+    """Pure formatter — every potentially-slow value is collected by the
+    caller (off the event loop where needed) and passed in."""
     from tdm_cli import versioning
 
     now = time.time()
     version = versioning.version_info()
     vcpu_limit = _cgroup_vcpu_limit() or float(os.cpu_count() or 1)
-    rss = _process_rss_bytes()
-    memory_limit = _cgroup_memory_limit()
-    cache_size = _cache_size_bytes()
     return {
         "status": "ok",
         "uptime": _format_duration(now - started_at),
@@ -435,9 +430,14 @@ class WebServer:
         self._site: web.TCPSite | None = None
         self._clients: set[web.WebSocketResponse] = set()
         self._broadcast_task: asyncio.Task[None] | None = None
+        self._cpu_task: asyncio.Task[None] | None = None
         self._closed = asyncio.Event()
         self._log_cursor = 0
         self._started_at = time.time()
+        # (sampled_at, bytes) — cache-dir walks are slow, refresh at most every 30s.
+        self._cache_size: tuple[float, int] = (0.0, 0)
+        # Refreshed by _sample_cpu_loop; /runtime reads it without sleeping.
+        self._vcpu_usage = 0.0
         # Command output is folded into the shared miner log so every client sees it.
         self._processor = CommandProcessor(
             manager, lambda text, style="": manager.state.add_log(text, style)
@@ -473,6 +473,7 @@ class WebServer:
         self._site = web.TCPSite(self._runner, self._host, self._port)
         await self._site.start()
         self._broadcast_task = asyncio.create_task(self._broadcast_loop())
+        self._cpu_task = asyncio.create_task(self._sample_cpu_loop())
 
     def request_stop(self) -> None:
         self._closed.set()
@@ -486,6 +487,11 @@ class WebServer:
             with suppress(asyncio.CancelledError, Exception):
                 await self._broadcast_task
             self._broadcast_task = None
+        if self._cpu_task is not None:
+            self._cpu_task.cancel()
+            with suppress(asyncio.CancelledError, Exception):
+                await self._cpu_task
+            self._cpu_task = None
         for ws in list(self._clients):
             with suppress(Exception):
                 await ws.close()
@@ -600,11 +606,40 @@ class WebServer:
         )
 
     async def _handle_runtime(self, request: web.Request) -> web.StreamResponse:
-        process_vcpus = await _process_vcpu_usage()
+        # The miner shares this event loop — collect every potentially-slow
+        # value off-loop (or from a cache) before formatting the payload.
+        rss = await asyncio.to_thread(_process_rss_bytes)
+        cache_size = await self._cached_cache_size()
         return web.json_response(
-            _runtime_payload(self._started_at, process_vcpus),
+            _runtime_payload(
+                self._started_at,
+                self._vcpu_usage,
+                rss,
+                _cgroup_memory_limit(),
+                cache_size,
+            ),
             headers=self._NO_STORE,
         )
+
+    async def _cached_cache_size(self) -> int:
+        """Cache-dir size with a 30s TTL; the walk runs in a worker thread."""
+        sampled_at, value = self._cache_size
+        now = time.monotonic()
+        if now - sampled_at < 30.0:
+            return value
+        value = await asyncio.to_thread(_cache_size_bytes)
+        self._cache_size = (time.monotonic(), value)
+        return value
+
+    async def _sample_cpu_loop(self) -> None:
+        """Refresh the process CPU usage every 5s so /runtime never sleeps."""
+        last_cpu, last_wall = time.process_time(), time.monotonic()
+        while True:
+            await asyncio.sleep(5)
+            cpu, wall = time.process_time(), time.monotonic()
+            if wall > last_wall:
+                self._vcpu_usage = max(0.0, (cpu - last_cpu) / (wall - last_wall))
+            last_cpu, last_wall = cpu, wall
 
     async def _handle_i18n(self, request: web.Request) -> web.StreamResponse:
         from tdm_cli.web import i18n

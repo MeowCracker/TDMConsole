@@ -16,6 +16,7 @@ The engine commit hash is resolved in this order:
 """
 from __future__ import annotations
 
+import functools
 import os
 import subprocess
 from pathlib import Path
@@ -80,8 +81,14 @@ def _snapshot_hash() -> str | None:
     return value[:7] if value else None
 
 
+@functools.lru_cache(maxsize=1)
 def engine_commit() -> str:
-    """Short commit hash the engine submodule is pinned to."""
+    """Short commit hash the engine submodule is pinned to.
+
+    Cached for the process lifetime: resolving may fork ``git`` and the web
+    server calls this on every /runtime and /meta request. An engine update
+    restarts the process via ``os.execv``, so the cache can never go stale.
+    """
     return _snapshot_hash() or _git_hash() or _build_info_hash() or "unknown"
 
 

@@ -133,9 +133,6 @@ class SessionMiddlewareTests(unittest.IsolatedAsyncioTestCase):
 
 
 class HealthcheckTests(unittest.IsolatedAsyncioTestCase):
-    @patch("tdm_cli.web.server._cache_size_bytes", return_value=768 * 1024 * 1024)
-    @patch("tdm_cli.web.server._cgroup_memory_limit", return_value=2 * 1024**3)
-    @patch("tdm_cli.web.server._process_rss_bytes", return_value=768 * 1024 * 1024)
     @patch("tdm_cli.web.server._cgroup_vcpu_limit", return_value=0.2)
     @patch("tdm_cli.web.server.time.time", return_value=1_700_003_661.0)
     @patch("tdm_cli.versioning.version_info")
@@ -150,7 +147,13 @@ class HealthcheckTests(unittest.IsolatedAsyncioTestCase):
             "engineCommit": "abc1234",
         }
 
-        payload = _runtime_payload(1_700_000_000.0, 0.125)
+        payload = _runtime_payload(
+            1_700_000_000.0,
+            0.125,
+            rss=768 * 1024 * 1024,
+            memory_limit=2 * 1024**3,
+            cache_size=768 * 1024 * 1024,
+        )
 
         self.assertEqual(payload["uptime"], "1h 1m 1s")
         self.assertEqual(payload["version"], "1.2.3")
@@ -170,9 +173,11 @@ class HealthcheckTests(unittest.IsolatedAsyncioTestCase):
     async def test_runtime_handler_returns_payload_with_no_store_header(self) -> None:
         server = WebServer.__new__(WebServer)
         server._started_at = 1_700_000_000.0
-        with patch("tdm_cli.web.server._process_vcpu_usage", return_value=0.0), patch(
-            "tdm_cli.web.server._runtime_payload", return_value={"status": "ok"}
-        ):
+        server._vcpu_usage = 0.0
+        server._cache_size = (0.0, 0)
+        with patch("tdm_cli.web.server._process_rss_bytes", return_value=0), patch(
+            "tdm_cli.web.server._cache_size_bytes", return_value=0
+        ), patch("tdm_cli.web.server._runtime_payload", return_value={"status": "ok"}):
             response = await server._handle_runtime(make_mocked_request("GET", "/runtime"))
 
         self.assertEqual(response.text, '{"status": "ok"}')

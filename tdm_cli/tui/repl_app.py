@@ -184,7 +184,7 @@ class ReplApp(App[None]):
             tips.append(f"{desc}\n", style="")
         tips.append("\nMode: ", style="dim")
         tips.append("repl", style="green")
-        tips.append(" · switch live with /switch-mode, saved across restarts", style="dim")
+        tips.append(" · switch live with /switch-mode (this session only)", style="dim")
         grid.add_row(logo, tips)
         self.query_one("#output", RichLog).write(
             Panel(
