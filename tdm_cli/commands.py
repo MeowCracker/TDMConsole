@@ -216,14 +216,25 @@ class CommandProcessor:
     def _cmd_proxy(self, args: list[str]) -> None:
         from yarl import URL
 
+        from tdm_cli.util import MASKED_PASSWORD, mask_proxy
+
         settings = self._m._twitch.settings
         if not args:
-            self._out(f"Proxy: {settings.proxy or '(none)'}")
+            # Command output lands in the shared log, which every web client
+            # sees — never echo the real proxy password.
+            self._out(f"Proxy: {mask_proxy(settings.proxy) or '(none)'}")
             return
         value = args[0]
+        if f":{MASKED_PASSWORD}@" in value:
+            self._out(
+                "This looks like the masked placeholder — re-enter the full "
+                "proxy URL including the real password.",
+                "warn",
+            )
+            return
         settings.proxy = URL() if value.lower() in ("clear", "none", "-") else URL(value)
         settings.save()
-        self._out(f"Proxy set to {settings.proxy or '(none)'} — reloading...", "info")
+        self._out(f"Proxy set to {mask_proxy(settings.proxy) or '(none)'} — reloading...", "info")
         self._m._twitch.change_state(self._state_enum().RESTART)
 
     def _cmd_reload(self, args: list[str]) -> None:

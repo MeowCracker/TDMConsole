@@ -10,6 +10,7 @@ from tdm_cli.web.server import (
     SESSION_COOKIE,
     SESSION_TTL_SECONDS,
     _AUTH_EXPIRES_AT,
+    _LoginThrottle,
     _MemorySessions,
     WebServer,
     _runtime_payload,
@@ -130,6 +131,56 @@ class SessionMiddlewareTests(unittest.IsolatedAsyncioTestCase):
         self.assertIs(response, expected)
         self.assertIn(_AUTH_EXPIRES_AT, request)
         handler.assert_awaited_once_with(request)
+
+
+class LoginThrottleTests(unittest.TestCase):
+    def test_not_locked_below_threshold(self) -> None:
+        throttle = _LoginThrottle()
+
+        for _ in range(_LoginThrottle.THRESHOLD - 1):
+            throttle.record_failure("1.2.3.4")
+
+        self.assertIsNone(throttle.retry_after("1.2.3.4"))
+
+    def test_locks_after_threshold_failures(self) -> None:
+        throttle = _LoginThrottle()
+
+        for _ in range(_LoginThrottle.THRESHOLD):
+            throttle.record_failure("1.2.3.4")
+
+        retry_after = throttle.retry_after("1.2.3.4")
+        self.assertIsNotNone(retry_after)
+        self.assertGreater(retry_after, 0)
+        # Other IPs are unaffected.
+        self.assertIsNone(throttle.retry_after("5.6.7.8"))
+
+    def test_lock_expires_over_time(self) -> None:
+        throttle = _LoginThrottle()
+        for _ in range(_LoginThrottle.THRESHOLD):
+            throttle.record_failure("1.2.3.4")
+
+        with patch(
+            "tdm_cli.web.server.time.monotonic",
+            return_value=__import__("time").monotonic() + _LoginThrottle.BASE_LOCK + 1,
+        ):
+            self.assertIsNone(throttle.retry_after("1.2.3.4"))
+
+    def test_lock_grows_with_further_failures_up_to_cap(self) -> None:
+        throttle = _LoginThrottle()
+        for _ in range(_LoginThrottle.THRESHOLD + 20):
+            throttle.record_failure("1.2.3.4")
+
+        self.assertLessEqual(throttle.retry_after("1.2.3.4"), _LoginThrottle.MAX_LOCK)
+        self.assertGreater(throttle.retry_after("1.2.3.4"), _LoginThrottle.BASE_LOCK)
+
+    def test_success_resets_counter(self) -> None:
+        throttle = _LoginThrottle()
+        for _ in range(_LoginThrottle.THRESHOLD):
+            throttle.record_failure("1.2.3.4")
+
+        throttle.reset("1.2.3.4")
+
+        self.assertIsNone(throttle.retry_after("1.2.3.4"))
 
 
 class HealthcheckTests(unittest.IsolatedAsyncioTestCase):

@@ -71,9 +71,17 @@ form.addEventListener("submit", async (event) => {
       body: JSON.stringify({ username: username.value, password: password.value }),
     });
     if (!response.ok) {
-      error.textContent = response.status === 401
-        ? "Invalid username or password."
-        : "Unable to sign in. Try again.";
+      if (response.status === 429) {
+        let seconds = 0;
+        try { seconds = (await response.json()).retryAfter || 0; } catch { /* ignore */ }
+        error.textContent = seconds
+          ? `Too many attempts — try again in ${seconds}s.`
+          : "Too many attempts — try again later.";
+      } else {
+        error.textContent = response.status === 401
+          ? "Invalid username or password."
+          : "Unable to sign in. Try again.";
+      }
       error.hidden = false;
       password.select();
       return;

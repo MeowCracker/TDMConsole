@@ -52,5 +52,18 @@ class SwitchModeTests(unittest.TestCase):
         self.assertIn("web", COMMANDS["/switch-mode"])
 
 
+class ProxyCommandTests(unittest.TestCase):
+    def test_rejects_masked_placeholder(self) -> None:
+        processor, manager, out = _make_processor()
+        settings = SimpleNamespace(proxy="", save=Mock())
+        manager._twitch = SimpleNamespace(settings=settings, change_state=Mock())
+
+        processor.dispatch("/proxy http://user:****@proxy.example:8080")
+
+        self.assertTrue(any("masked placeholder" in text for text, _ in out))
+        settings.save.assert_not_called()
+        manager._twitch.change_state.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

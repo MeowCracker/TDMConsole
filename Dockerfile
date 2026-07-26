@@ -47,4 +47,7 @@ EXPOSE 8080
 
 # Uses the synced venv python; --mode web needs no TTY. WebUI authentication
 # is enabled only when the corresponding environment variables are non-empty.
-ENTRYPOINT ["/bin/sh", "-c", "set -- python /app/main.py --mode web \"$@\"; if [ -n \"${USERNAME:-}\" ]; then set -- \"$@\" --username \"$USERNAME\"; fi; if [ -n \"${PASSWORD:-}\" ]; then set -- \"$@\" --password \"$PASSWORD\"; fi; exec \"$@\"", "--"]
+# Credentials stay in the environment (main.py reads TDM_WEB_USERNAME/PASSWORD)
+# instead of CLI flags, so they never show up in the container's process list.
+# The legacy USERNAME/PASSWORD variable names keep working.
+ENTRYPOINT ["/bin/sh", "-c", "export TDM_WEB_USERNAME=\"${TDM_WEB_USERNAME:-${USERNAME:-}}\" TDM_WEB_PASSWORD=\"${TDM_WEB_PASSWORD:-${PASSWORD:-}}\"; exec python /app/main.py --mode web \"$@\"", "--"]

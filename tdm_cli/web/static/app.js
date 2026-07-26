@@ -891,6 +891,13 @@ function openSettings() {
         send(`/priority-mode ${modeSel.value.toLowerCase()}`);
       }
       if (p !== origProxy) {
+        // The server masks the proxy password as ****; a locally edited
+        // masked URL must not be sent back as if **** were the real password.
+        if (p.includes(":****@")) {
+          showToast(t("settings.proxy_masked",
+            "The proxy password is masked — re-enter the full proxy URL."));
+          return;
+        }
         send(`/proxy ${p || "clear"}`);
       }
       closeModal();

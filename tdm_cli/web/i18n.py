@@ -72,6 +72,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.note": "Theme & language apply instantly and are saved in this browser. "
         "Priority-mode changes apply on the next reload.",
         "settings.save": "Save",
+        "settings.proxy_masked": "The proxy password is masked — re-enter the full proxy URL.",
         "settings.cancel": "Cancel",
         "settings.done": "Done",
         "games.title": "Games — priority & exclusions",
@@ -134,6 +135,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.mode_dark": "深色",
         "settings.note": "主题与语言即时生效并保存在此浏览器中。优先模式的更改将在下次重新加载时生效。",
         "settings.save": "保存",
+        "settings.proxy_masked": "代理密码已脱敏显示 — 请重新输入完整的代理地址。",
         "settings.cancel": "取消",
         "settings.done": "完成",
         "games.title": "游戏 — 优先与排除",
@@ -185,6 +187,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.mode_dark": "深色",
         "settings.note": "主題與語言即時生效並儲存在此瀏覽器中。優先模式的變更將在下次重新載入時生效。",
         "settings.save": "儲存",
+        "settings.proxy_masked": "代理密碼已遮罩顯示 — 請重新輸入完整的代理位址。",
         "settings.cancel": "取消",
         "settings.done": "完成",
         "games.title": "遊戲 — 優先與排除",
@@ -229,6 +232,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.mode_dark": "ダーク",
         "settings.note": "テーマと言語は即座に適用され、このブラウザに保存されます。優先モードの変更は次回の再読み込み時に適用されます。",
         "settings.save": "保存",
+        "settings.proxy_masked": "プロキシのパスワードはマスクされています — 完全なプロキシ URL を再入力してください。",
         "settings.cancel": "キャンセル",
         "settings.done": "完了",
         "games.title": "ゲーム — 優先と除外",
@@ -277,6 +281,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.note": "Thema und Sprache werden sofort angewendet und in diesem Browser "
         "gespeichert. Änderungen am Prioritätsmodus wirken beim nächsten Neuladen.",
         "settings.save": "Speichern",
+        "settings.proxy_masked": "Das Proxy-Passwort ist maskiert — gib die vollständige Proxy-URL erneut ein.",
         "settings.cancel": "Abbrechen",
         "settings.done": "Fertig",
         "games.title": "Spiele — Priorität & Ausschlüsse",
@@ -322,6 +327,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.note": "Le thème et la langue s'appliquent instantanément et sont enregistrés "
         "dans ce navigateur. Les changements de mode de priorité prennent effet au prochain rechargement.",
         "settings.save": "Enregistrer",
+        "settings.proxy_masked": "Le mot de passe du proxy est masqué — saisissez à nouveau l'URL complète du proxy.",
         "settings.cancel": "Annuler",
         "settings.done": "Terminé",
         "games.title": "Jeux — priorité et exclusions",
@@ -367,6 +373,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.note": "El tema y el idioma se aplican al instante y se guardan en este "
         "navegador. Los cambios del modo de prioridad se aplican al recargar.",
         "settings.save": "Guardar",
+        "settings.proxy_masked": "La contraseña del proxy está enmascarada — vuelve a introducir la URL completa del proxy.",
         "settings.cancel": "Cancelar",
         "settings.done": "Hecho",
         "games.title": "Juegos — prioridad y exclusiones",
@@ -412,6 +419,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.note": "Il tema e la lingua vengono applicati subito e salvati in questo "
         "browser. Le modifiche alla modalità di priorità si applicano al prossimo ricaricamento.",
         "settings.save": "Salva",
+        "settings.proxy_masked": "La password del proxy è mascherata — reinserisci l'URL completo del proxy.",
         "settings.cancel": "Annulla",
         "settings.done": "Fatto",
         "games.title": "Giochi — priorità ed esclusioni",
@@ -457,6 +465,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.note": "O tema e o idioma são aplicados instantaneamente e salvos neste "
         "navegador. Alterações no modo de prioridade têm efeito no próximo recarregamento.",
         "settings.save": "Salvar",
+        "settings.proxy_masked": "A senha do proxy está mascarada — insira novamente a URL completa do proxy.",
         "settings.cancel": "Cancelar",
         "settings.done": "Concluído",
         "games.title": "Jogos — prioridade e exclusões",
@@ -502,6 +511,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.note": "Тема и язык применяются сразу и сохраняются в этом браузере. "
         "Изменения режима приоритета вступают в силу при следующей перезагрузке.",
         "settings.save": "Сохранить",
+        "settings.proxy_masked": "Пароль прокси скрыт — введите полный URL прокси заново.",
         "settings.cancel": "Отмена",
         "settings.done": "Готово",
         "games.title": "Игры — приоритет и исключения",
@@ -547,6 +557,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.note": "Tema ve dil anında uygulanır ve bu tarayıcıya kaydedilir. "
         "Öncelik modu değişiklikleri bir sonraki yeniden yüklemede etkinleşir.",
         "settings.save": "Kaydet",
+        "settings.proxy_masked": "Proxy parolası maskelendi — tam proxy URL'sini yeniden girin.",
         "settings.cancel": "İptal",
         "settings.done": "Bitti",
         "games.title": "Oyunlar — öncelik ve hariç tutma",
@@ -592,6 +603,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.note": "Motyw i język są stosowane natychmiast i zapisywane w tej "
         "przeglądarce. Zmiany trybu priorytetu działają po następnym przeładowaniu.",
         "settings.save": "Zapisz",
+        "settings.proxy_masked": "Hasło proxy jest zamaskowane — wprowadź ponownie pełny adres URL proxy.",
         "settings.cancel": "Anuluj",
         "settings.done": "Gotowe",
         "games.title": "Gry — priorytet i wykluczenia",
@@ -637,6 +649,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.note": "Thema en taal worden direct toegepast en in deze browser "
         "opgeslagen. Wijzigingen in de prioriteitsmodus gelden na de volgende herlaad.",
         "settings.save": "Opslaan",
+        "settings.proxy_masked": "Het proxywachtwoord is gemaskeerd — voer de volledige proxy-URL opnieuw in.",
         "settings.cancel": "Annuleren",
         "settings.done": "Klaar",
         "games.title": "Games — prioriteit en uitsluitingen",
@@ -682,6 +695,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.note": "Tema og sprog anvendes med det samme og gemmes i denne browser. "
         "Ændringer af prioritetstilstand træder i kraft ved næste genindlæsning.",
         "settings.save": "Gem",
+        "settings.proxy_masked": "Proxyadgangskoden er maskeret — indtast den fulde proxy-URL igen.",
         "settings.cancel": "Annuller",
         "settings.done": "Færdig",
         "games.title": "Spil — prioritet og udelukkelser",
@@ -727,6 +741,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.note": "Tema og språk brukes umiddelbart og lagres i denne nettleseren. "
         "Endringer i prioritetsmodus trer i kraft ved neste innlasting.",
         "settings.save": "Lagre",
+        "settings.proxy_masked": "Proxy-passordet er maskert — skriv inn hele proxy-URL-en på nytt.",
         "settings.cancel": "Avbryt",
         "settings.done": "Ferdig",
         "games.title": "Spill — prioritet og ekskluderinger",
@@ -772,6 +787,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.note": "Motiv a jazyk se použijí okamžitě a uloží se v tomto prohlížeči. "
         "Změny režimu priority se projeví při příštím načtení.",
         "settings.save": "Uložit",
+        "settings.proxy_masked": "Heslo proxy je maskováno — zadejte znovu celou adresu URL proxy.",
         "settings.cancel": "Zrušit",
         "settings.done": "Hotovo",
         "games.title": "Hry — priorita a vyloučení",
@@ -817,6 +833,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.note": "A téma és a nyelv azonnal érvénybe lép, és ebben a böngészőben "
         "tárolódik. A prioritási mód módosításai a következő újratöltéskor lépnek életbe.",
         "settings.save": "Mentés",
+        "settings.proxy_masked": "A proxy jelszava maszkolva van — írd be újra a teljes proxy URL-t.",
         "settings.cancel": "Mégse",
         "settings.done": "Kész",
         "games.title": "Játékok — prioritás és kizárások",
@@ -862,6 +879,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.note": "Tema și limba se aplică instantaneu și sunt salvate în acest "
         "browser. Modificările modului de prioritate se aplică la următoarea reîncărcare.",
         "settings.save": "Salvează",
+        "settings.proxy_masked": "Parola proxy-ului este mascată — reintroduceți URL-ul complet al proxy-ului.",
         "settings.cancel": "Anulează",
         "settings.done": "Gata",
         "games.title": "Jocuri — prioritate și excluderi",
@@ -907,6 +925,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.note": "Тема та мова застосовуються одразу й зберігаються в цьому браузері. "
         "Зміни режиму пріоритету набувають чинності після наступного перезавантаження.",
         "settings.save": "Зберегти",
+        "settings.proxy_masked": "Пароль проксі приховано — введіть повну URL-адресу проксі ще раз.",
         "settings.cancel": "Скасувати",
         "settings.done": "Готово",
         "games.title": "Ігри — пріоритет та виключення",
@@ -952,6 +971,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.note": "يتم تطبيق السمة واللغة فورًا وحفظهما في هذا المتصفح. "
         "تسري تغييرات وضع الأولوية عند إعادة التحميل التالية.",
         "settings.save": "حفظ",
+        "settings.proxy_masked": "كلمة مرور الوكيل مخفية — أعد إدخال عنوان URL الكامل للوكيل.",
         "settings.cancel": "إلغاء",
         "settings.done": "تم",
         "games.title": "الألعاب — الأولوية والاستثناءات",
@@ -997,6 +1017,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.note": "Tema dan bahasa langsung diterapkan dan disimpan di browser ini. "
         "Perubahan mode prioritas berlaku pada pemuatan ulang berikutnya.",
         "settings.save": "Simpan",
+        "settings.proxy_masked": "Kata sandi proxy disamarkan — masukkan kembali URL proxy lengkap.",
         "settings.cancel": "Batal",
         "settings.done": "Selesai",
         "games.title": "Game — prioritas & pengecualian",

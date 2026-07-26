@@ -126,11 +126,14 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--username", dest="_username", metavar="USERNAME", default=None,
-        help="require this username for WebUI access (requires --password)",
+        help="require this username for WebUI access (requires --password; "
+             "or set $TDM_WEB_USERNAME)",
     )
     parser.add_argument(
         "--password", dest="_password", metavar="PASSWORD", default=None,
-        help="require this password for WebUI access (requires --username)",
+        help="require this password for WebUI access (requires --username; "
+             "prefer $TDM_WEB_PASSWORD — CLI arguments are visible in the "
+             "process list)",
     )
     parser.add_argument(
         "-v", dest="_verbose", action="count", default=0,
@@ -168,6 +171,20 @@ if __name__ == "__main__":
             parser.error("--username and --password cannot be empty")
         if ":" in args._username:
             parser.error("--username cannot contain ':'")
+
+    # WebUI credentials may come from the environment instead of flags — CLI
+    # arguments are visible in the process list (ps), env vars are not.
+    creds_from_env = False
+    if args._username is None and (
+        os.environ.get("TDM_WEB_USERNAME") or os.environ.get("TDM_WEB_PASSWORD")
+    ):
+        args._username = os.environ.get("TDM_WEB_USERNAME")
+        args._password = os.environ.get("TDM_WEB_PASSWORD")
+        creds_from_env = True
+        if not args._username or not args._password:
+            parser.error("TDM_WEB_USERNAME and TDM_WEB_PASSWORD must both be set and non-empty")
+        if ":" in args._username:
+            parser.error("TDM_WEB_USERNAME cannot contain ':'")
 
     running_macos_app = getattr(sys, "frozen", False) and _is_macos_app_bundle(
         Path(sys.executable)
@@ -249,7 +266,14 @@ if __name__ == "__main__":
     if mode in ("tui", "repl") and not console.INTERACTIVE:
         mode = "headless"
     if args._username is not None and mode != "web":
-        parser.error("--username and --password can only be used with --mode web")
+        if creds_from_env:
+            # A leftover env var must not kill a TUI/REPL launch — just ignore it.
+            console.emit(
+                "Ignoring TDM_WEB_USERNAME/TDM_WEB_PASSWORD — only used in web mode."
+            )
+            args._username = args._password = None
+        else:
+            parser.error("--username and --password can only be used with --mode web")
     bootstrap.setup(install_gui_shim=(mode != "gui"))
 
     from translate import _

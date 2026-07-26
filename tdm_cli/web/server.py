@@ -26,6 +26,7 @@ from typing import Any, TYPE_CHECKING
 from aiohttp import web, WSMsgType
 
 from tdm_cli.commands import CommandProcessor
+from tdm_cli.util import mask_proxy
 
 if TYPE_CHECKING:
     from tdm_cli.gui import GUIManager
@@ -262,6 +263,53 @@ class _MemorySessions:
                 self._sessions.pop(token, None)
 
 
+class _LoginThrottle:
+    """Per-IP brute-force lockout for /login, process-local like the sessions.
+
+    After ``THRESHOLD`` consecutive failures the IP is locked for ``BASE_LOCK``
+    seconds, doubling per further failure up to ``MAX_LOCK``. A successful
+    login resets the counter. Behind a reverse proxy ``request.remote`` is the
+    proxy's address, so the lockout is effectively global there — acceptable
+    for a single-credential app.
+    """
+
+    THRESHOLD = 5
+    BASE_LOCK = 60.0
+    MAX_LOCK = 900.0
+    _IDLE_EVICT = 3600.0
+
+    def __init__(self) -> None:
+        # ip -> (consecutive failures, locked_until, last activity)
+        self._entries: dict[str, tuple[int, float, float]] = {}
+
+    def _evict_idle(self, now: float) -> None:
+        stale = [ip for ip, (_, _, seen) in self._entries.items() if now - seen > self._IDLE_EVICT]
+        for ip in stale:
+            del self._entries[ip]
+
+    def retry_after(self, ip: str) -> float | None:
+        """Seconds until this IP may try again, or None if not locked."""
+        now = time.monotonic()
+        self._evict_idle(now)
+        entry = self._entries.get(ip)
+        if entry is None:
+            return None
+        _fails, locked_until, _seen = entry
+        remaining = locked_until - now
+        return remaining if remaining > 0 else None
+
+    def record_failure(self, ip: str) -> None:
+        now = time.monotonic()
+        fails = self._entries.get(ip, (0, 0.0, now))[0] + 1
+        locked_until = 0.0
+        if fails >= self.THRESHOLD:
+            locked_until = now + min(self.BASE_LOCK * 2 ** (fails - self.THRESHOLD), self.MAX_LOCK)
+        self._entries[ip] = (fails, locked_until, now)
+
+    def reset(self, ip: str) -> None:
+        self._entries.pop(ip, None)
+
+
 def _session_auth_middleware(sessions: _MemorySessions):
     @web.middleware
     async def require_session(request: web.Request, handler):
@@ -367,7 +415,8 @@ def snapshot(manager: GUIManager) -> dict[str, Any]:
         "settings": {
             "priority": list(settings.priority),
             "exclude": sorted(settings.exclude),
-            "proxy": str(settings.proxy),
+            # Masked: a user:pass@host proxy URL must not reach the browser.
+            "proxy": mask_proxy(settings.proxy),
             "priorityMode": settings.priority_mode.name,
         },
     }
@@ -472,6 +521,7 @@ class WebServer:
             if username is not None and password is not None
             else None
         )
+        self._throttle = _LoginThrottle()
         self._runner: web.AppRunner | None = None
         self._site: web.TCPSite | None = None
         self._clients: set[web.WebSocketResponse] = set()
@@ -520,6 +570,16 @@ class WebServer:
         await self._site.start()
         self._broadcast_task = asyncio.create_task(self._broadcast_loop())
         self._cpu_task = asyncio.create_task(self._sample_cpu_loop())
+        if self._sessions is not None and self._host not in ("127.0.0.1", "localhost", "::1"):
+            warning = (
+                f"WebUI authentication is enabled but serving plain HTTP on {self._host} — "
+                "credentials and session cookies travel unencrypted; put an HTTPS "
+                "reverse proxy in front for non-local access."
+            )
+            logger.warning(warning)
+            # Also surface it in the shared miner log (visible in every frontend)
+            # — the TwitchDrops logger has no console handler at default verbosity.
+            self._m.state.add_log(warning, "warn")
 
     def request_stop(self) -> None:
         self._closed.set()
@@ -565,6 +625,15 @@ class WebServer:
     async def _handle_login(self, request: web.Request) -> web.StreamResponse:
         if self._sessions is None:
             raise web.HTTPNotFound()
+        ip = request.remote or "?"
+        retry_after = self._throttle.retry_after(ip)
+        if retry_after is not None:
+            seconds = max(1, int(retry_after))
+            return web.json_response(
+                {"error": "too_many_attempts", "retryAfter": seconds},
+                status=429,
+                headers={**self._NO_STORE, "Retry-After": str(seconds)},
+            )
         try:
             payload = await request.json()
         except (TypeError, ValueError):
@@ -586,11 +655,13 @@ class WebServer:
         else:
             token = self._sessions.create(username, password)
         if token is None:
+            self._throttle.record_failure(ip)
             return web.json_response(
                 {"error": "invalid_credentials"},
                 status=401,
                 headers=self._NO_STORE,
             )
+        self._throttle.reset(ip)
         return _login_response(token, secure=request.secure)
 
     async def _handle_logout(self, request: web.Request) -> web.StreamResponse:

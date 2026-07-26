@@ -37,6 +37,10 @@ If you want to know how the TDM work, you may check out the original project [De
 | `--port PORT`                        | Set the listening port of webui mode    | False                  | `8080`                           |
 | `--username USERNAME`                | Specifiy a username for webui mode      | Sync with `--password` |                                  |
 | `--password PASSWORD`                | Specify a password for webui mode       | Sync with `--username` |                                  |
+
+> [!tip]
+>
+> WebUI credentials can also be provided via the `TDM_WEB_USERNAME` / `TDM_WEB_PASSWORD` environment variables — preferred over the CLI flags, since command-line arguments are visible in the process list (`ps`). When authentication is enabled on a non-local address, put an HTTPS reverse proxy in front — plain HTTP sends credentials unencrypted.
 | `--v[vvv]`                           | Verbose                                 | False                  |                                  |
 | `--log`                              | Write log to `log.txt`                  | False                  |                                  |
 | `--version`                          | Show version                            | False                  |                                  |

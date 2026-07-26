@@ -40,6 +40,10 @@
 | `--log`                              | 写出日志到 `log.txt`                     | False                |                       |
 | `--version`                          | 展示版本号                               | False                |                       |
 
+> [!tip]
+>
+> WebUI 的认证凭据也可以通过环境变量 `TDM_WEB_USERNAME` / `TDM_WEB_PASSWORD` 提供——比命令行参数更推荐，因为命令行参数在进程列表（`ps`）中可见。若在非本机地址上启用了认证，请在前面加一层 HTTPS 反向代理——纯 HTTP 会明文传输凭据。
+
 ### 二进制产物
 
 直接通过 GitHub Release 页面下载最新的二进制产物，注意选择对应的系统和架构。
