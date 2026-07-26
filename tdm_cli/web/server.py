@@ -577,9 +577,11 @@ class WebServer:
                 "reverse proxy in front for non-local access."
             )
             logger.warning(warning)
-            # Also surface it in the shared miner log (visible in every frontend)
-            # — the TwitchDrops logger has no console handler at default verbosity.
+            # Also surface it in the shared miner log + console (visible in every
+            # frontend) — the TwitchDrops logger has no console handler at
+            # default verbosity.
             self._m.state.add_log(warning, "warn")
+            self._m.frontend.log(warning, "warn")
 
     def request_stop(self) -> None:
         self._closed.set()
