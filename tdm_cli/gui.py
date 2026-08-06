@@ -568,6 +568,7 @@ class GUIManager:
         self._engine_update_task: asyncio.Task[None] | None = None
         self._engine_update_result: str | None = None
         self._restart_requested = False
+        self._restart_task: asyncio.Task[None] | None = None
 
         # Components (order-independent; none touch a display)
         self.status = StatusBar(self)
@@ -684,12 +685,32 @@ class GUIManager:
 
     def request_engine_update(self) -> bool:
         """Start one non-blocking engine update shared by every CLI frontend."""
-        if self._engine_update_task is not None:
+        if self._engine_update_task is not None or self._restart_requested:
             return False
         self._engine_update_result = None
         self._update_log("Checking for engine updates...", "info")
         self._engine_update_task = asyncio.create_task(self._update_engine())
         return True
+
+    def request_restart(self) -> bool:
+        """Gracefully shut down and replace this process with a fresh one."""
+        if self._engine_update_task is not None:
+            return False
+        return self._schedule_restart("Restarting TDMConsole...", "notify")
+
+    def _schedule_restart(self, message: str, style: str) -> bool:
+        if self._restart_requested:
+            return False
+        self._restart_requested = True
+        self._update_log(message, style)
+        self._restart_task = asyncio.create_task(self._restart_after_render())
+        return True
+
+    async def _restart_after_render(self) -> None:
+        # Let terminal and WebSocket frontends render the restart notice before
+        # the normal shutdown path saves state and main.py calls os.execv().
+        await asyncio.sleep(0.75)
+        self.close()
 
     def _update_log(self, text: str, style: str = "") -> None:
         self.state.add_log(text, style)
@@ -706,12 +727,9 @@ class GUIManager:
                 return
             self._engine_update_result = "updated"
             self._update_log(result.message, "success")
-            self._update_log("Restarting to load the updated engine...", "notify")
-            self._restart_requested = True
-            # Give terminal and WebSocket frontends one render cycle to show the
-            # result before graceful shutdown starts.
-            await asyncio.sleep(0.75)
-            self.close()
+            self._schedule_restart(
+                "Restarting to load the updated engine...", "notify"
+            )
         except EngineUpdateError as exc:
             self._engine_update_result = "failed"
             self._update_log(f"Engine update failed: {exc}", "error")

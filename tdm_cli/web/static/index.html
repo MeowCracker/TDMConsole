@@ -27,6 +27,7 @@
     <symbol id="i-switch" viewBox="0 0 1024 1024"><path fill="currentColor" d="M886.2 604.8H137.8c-22.1 0-40 17.9-40 40 0 8.4 2.6 16.2 7 22.6 1.9 4.5 4.8 8.7 8.4 12.4L289.5 856c7.8 7.8 18 11.7 28.3 11.7s20.5-3.9 28.3-11.7c15.6-15.6 15.6-40.9 0-56.6L231.3 684.8h654.8c22.1 0 40-17.9 40-40s-17.8-40-39.9-40zM137.8 419.2h748.4c22.1 0 40-17.9 40-40 0-8.4-2.6-16.2-7-22.6-1.4-3.3-3.4-6.5-5.8-9.5L769.2 170.9c-14-17.1-39.2-19.6-56.3-5.6-17.1 14-19.6 39.2-5.6 56.3l96.3 117.6H137.8c-22.1 0-40 17.9-40 40s17.9 40 40 40z"/></symbol>
     <symbol id="i-chevron-down" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6 9 6 6 6-6"/></symbol>
     <symbol id="i-chevron-up" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m18 15-6-6-6 6"/></symbol>
+    <symbol id="i-restart" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v10M18.4 6.6a9 9 0 1 1-12.77.04"/></symbol>
   </svg>
 
   <!-- brushed-metal top rail -->
@@ -80,6 +81,7 @@
     <section class="panel controls" aria-label="Controls">
       <button class="btn" id="btn-login" type="button"><svg class="ico" aria-hidden="true"><use href="#i-login"/></svg><span data-i18n="btn.login">Log in</span></button>
       <button class="btn" id="btn-reload" type="button"><svg class="ico" aria-hidden="true"><use href="#i-reload"/></svg><span data-i18n="btn.reload">Reload</span></button>
+      <button class="btn" id="btn-restart" type="button"><svg class="ico" aria-hidden="true"><use href="#i-restart"/></svg><span data-i18n="btn.restart">Restart</span></button>
       <button class="btn" id="btn-update" type="button"><svg class="ico" aria-hidden="true"><use href="#i-update"/></svg><span data-i18n="btn.update">Update engine</span></button>
       <button class="btn" id="btn-games" type="button"><svg class="ico" aria-hidden="true"><use href="#i-games"/></svg><span data-i18n="btn.games">Games</span></button>
       <button class="btn" id="btn-settings" type="button"><svg class="ico" aria-hidden="true"><use href="#i-settings"/></svg><span data-i18n="btn.settings">Settings</span></button>
@@ -150,6 +152,6 @@
   <div id="modal-root" class="modal-root"></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="/static/app.js?v=25"></script>
+  <script src="/static/app.js?v=27"></script>
 </body>
 </html>

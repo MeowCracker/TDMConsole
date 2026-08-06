@@ -22,6 +22,8 @@ let runtimeCollapsed = localStorage.getItem(RUNTIME_COLLAPSED_KEY) !== "false";
 let engineUpdateRequested = false;
 let engineUpToDate = false;
 let engineUpToDateTimer = null;
+let restartRequested = false;
+let reloadAfterRestart = false;
 let toastTimer = null;
 
 /* ---- theming: accent colour is user-overridable, persisted locally ------ */
@@ -240,9 +242,10 @@ function showToast(message) {
 function renderUpdateButton(s = state || {}) {
   const button = $("btn-update");
   const active = engineUpdateRequested || Boolean(s.engineUpdating);
+  const restarting = restartRequested || Boolean(s.restartRequested);
   const upToDate = engineUpToDate && !active;
   const label = button.querySelector("span");
-  button.disabled = active;
+  button.disabled = active || restarting;
   button.classList.toggle("is-loading", active);
   button.classList.toggle("is-up-to-date", upToDate);
   button.setAttribute("aria-busy", String(active));
@@ -252,6 +255,19 @@ function renderUpdateButton(s = state || {}) {
       : (upToDate
         ? t("btn.up_to_date", "Engine is up to date")
         : t("btn.update", "Update engine"));
+  }
+}
+
+function renderRestartButton(s = state || {}) {
+  const button = $("btn-restart");
+  const active = restartRequested || Boolean(s.restartRequested);
+  const label = button.querySelector("span");
+  button.disabled = active || Boolean(s.engineUpdating);
+  button.setAttribute("aria-busy", String(active));
+  if (label) {
+    label.textContent = active
+      ? t("btn.restarting", "Restarting...")
+      : t("btn.restart", "Restart");
   }
 }
 
@@ -280,7 +296,13 @@ async function refreshRuntime() {
 function connect() {
   const proto = location.protocol === "https:" ? "wss" : "ws";
   ws = new WebSocket(`${proto}://${location.host}/ws`);
-  ws.onopen = () => setConn(true);
+  ws.onopen = () => {
+    setConn(true);
+    if (reloadAfterRestart) {
+      reloadAfterRestart = false;
+      location.reload();
+    }
+  };
   ws.onclose = (event) => {
     if (event.code === 4401) {
       redirectToLogin();
@@ -328,6 +350,10 @@ function send(text) {
 
 /* ---- rendering ---------------------------------------------------------- */
 function render(s) {
+  if (s.restartRequested) {
+    restartRequested = true;
+    reloadAfterRestart = true;
+  }
   // status + LED
   $("status-text").textContent = s.status || t("status.starting", "starting…");
   const led = $("led");
@@ -344,6 +370,7 @@ function render(s) {
     }
   }
   renderUpdateButton(s);
+  renderRestartButton(s);
 
   // user plate
   const login = s.login || {};
@@ -682,6 +709,27 @@ function actions(...btns) { const a = el("div", "modal-actions"); a.append(...bt
 function primaryBtn(text, fn) { const b = el("button", "btn btn-primary", text); b.onclick = fn; return b; }
 function ghostBtn(text, fn) { const b = el("button", "btn", text); b.onclick = fn; return b; }
 
+function openRestartConfirm() {
+  const node = el("div");
+  node.append(heading(t("restart.title", "Restart TDMConsole?")));
+  node.append(el("p", null, t(
+    "restart.message",
+    "Mining will pause briefly while the entire program restarts."
+  )));
+  node.append(actions(
+    ghostBtn(t("settings.cancel", "Cancel"), closeModal),
+    primaryBtn(t("restart.confirm", "Restart now"), () => {
+      restartRequested = true;
+      reloadAfterRestart = true;
+      renderRestartButton();
+      renderUpdateButton();
+      closeModal();
+      send("/restart");
+    }),
+  ));
+  openModal("restart", node);
+}
+
 /* login modal */
 function openLogin() {
   const node = el("div");
@@ -908,6 +956,7 @@ function openSettings() {
 
 /* ---- wire up controls --------------------------------------------------- */
 $("btn-reload").onclick = () => send("/reload");
+$("btn-restart").onclick = openRestartConfirm;
 $("btn-update").onclick = () => {
   if (engineUpdateRequested) return;
   engineUpToDate = false;

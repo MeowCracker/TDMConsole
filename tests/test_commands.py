@@ -8,7 +8,11 @@ from tdm_cli.commands import COMMANDS, CommandProcessor
 
 
 def _make_processor(mode: str = "repl") -> tuple[CommandProcessor, SimpleNamespace, list[tuple[str, str]]]:
-    manager = SimpleNamespace(mode=mode, request_frontend=Mock())
+    manager = SimpleNamespace(
+        mode=mode,
+        request_frontend=Mock(),
+        request_restart=Mock(return_value=True),
+    )
     out: list[tuple[str, str]] = []
     processor = CommandProcessor(manager, lambda text, style="": out.append((text, style)))
     return processor, manager, out
@@ -63,6 +67,23 @@ class ProxyCommandTests(unittest.TestCase):
         self.assertTrue(any("masked placeholder" in text for text, _ in out))
         settings.save.assert_not_called()
         manager._twitch.change_state.assert_not_called()
+
+
+class RestartCommandTests(unittest.TestCase):
+    def test_restart_requests_full_process_restart(self) -> None:
+        processor, manager, _out = _make_processor(mode="web")
+
+        processor.dispatch("/restart")
+
+        manager.request_restart.assert_called_once_with()
+
+    def test_restart_is_rejected_while_update_or_restart_is_pending(self) -> None:
+        processor, manager, out = _make_processor(mode="web")
+        manager.request_restart.return_value = False
+
+        processor.dispatch("/restart")
+
+        self.assertTrue(any("Cannot restart" in text for text, _ in out))
 
 
 if __name__ == "__main__":

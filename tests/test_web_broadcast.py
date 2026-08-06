@@ -18,6 +18,7 @@ def _make_manager() -> SimpleNamespace:
         state=MinerState(),
         _twitch=SimpleNamespace(settings=settings),
         mode="web",
+        restart_requested=False,
         engine_update_running=False,
         engine_update_result=None,
     )
@@ -34,6 +35,14 @@ class StateSignatureTests(unittest.TestCase):
         before = _state_signature(manager)
 
         manager.state.drop_progress = 0.5
+
+        self.assertNotEqual(before, _state_signature(manager))
+
+    def test_restart_request_moves_signature(self) -> None:
+        manager = _make_manager()
+        before = _state_signature(manager)
+
+        manager.restart_requested = True
 
         self.assertNotEqual(before, _state_signature(manager))
 

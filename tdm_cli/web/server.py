@@ -361,6 +361,7 @@ def snapshot(manager: GUIManager) -> dict[str, Any]:
     return {
         "status": s.status,
         "mode": manager.mode,
+        "restartRequested": manager.restart_requested,
         "engineUpdating": manager.engine_update_running,
         "engineUpdateResult": manager.engine_update_result,
         "login": {
@@ -462,6 +463,7 @@ def _state_signature(manager: GUIManager) -> tuple:
     return (
         s.status,
         manager.mode,
+        manager.restart_requested,
         manager.engine_update_running,
         manager.engine_update_result,
         s.login_available,
