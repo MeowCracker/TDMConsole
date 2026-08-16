@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import webbrowser
 from dataclasses import dataclass
 from time import monotonic, time
@@ -72,6 +73,29 @@ logger = logging.getLogger("TwitchDrops")
 _RECONNECT_RESTART_DELAY = 180.0
 _RECONNECT_RESTART_FAILURES = 3
 _RECONNECT_DELAY_TOLERANCE = 1.0
+_PROCESS_STARTED_AT_ENV = "TDMCONSOLE_PROCESS_STARTED_AT"
+_LAST_RESTART_AT_ENV = "TDMCONSOLE_LAST_RESTART_AT"
+
+
+def _read_runtime_timestamp(name: str) -> float | None:
+    try:
+        value = float(os.environ[name])
+    except (KeyError, ValueError):
+        return None
+    return value if value > 0 else None
+
+
+def _runtime_timestamps() -> tuple[float, float | None]:
+    started_at = _read_runtime_timestamp(_PROCESS_STARTED_AT_ENV)
+    if started_at is None:
+        started_at = time()
+        os.environ[_PROCESS_STARTED_AT_ENV] = repr(started_at)
+    return started_at, _read_runtime_timestamp(_LAST_RESTART_AT_ENV)
+
+
+def mark_process_restart() -> None:
+    """Record a full-process restart for the replacement process to inherit."""
+    os.environ[_LAST_RESTART_AT_ENV] = repr(time())
 
 
 # Interface-mode -> frontend factory. "tui"/"repl" factories import their heavy
@@ -573,7 +597,7 @@ class GUIManager:
         self._poll_task: asyncio.Task[None] | None = None
 
         self.state = MinerState()
-        self.process_started_at = time()
+        self.process_started_at, self.last_restart_at = _runtime_timestamps()
         self.mode = ACTIVE_MODE
         self.frontend = make_frontend(self.mode, self)
         self._switch_task: asyncio.Task[None] | None = None

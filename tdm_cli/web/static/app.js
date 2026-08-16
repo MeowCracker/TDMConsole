@@ -194,6 +194,8 @@ async function initMeta() {
 function renderRuntime(runtime) {
   if (!runtime) return;
   $("runtime-uptime").textContent = runtime.uptime || "—";
+  $("runtime-started").textContent = runtime.startedAt
+    ? new Date(runtime.startedAt).toLocaleString() : "—";
   $("runtime-last-restart").textContent = runtime.lastRestartAt
     ? new Date(runtime.lastRestartAt).toLocaleString() : "—";
   $("runtime-version").textContent = runtime.version || "—";

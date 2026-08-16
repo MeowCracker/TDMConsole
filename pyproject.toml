@@ -24,6 +24,11 @@ default-groups = ["gui"]
 pythonpath = ["."]
 testpaths = ["tests"]
 
+[tool.ruff]
+# The engine is a pristine upstream submodule and must never be reformatted by
+# the outer project's formatting command.
+extend-exclude = ["TwitchDropsMiner"]
+
 [dependency-groups]
 # GUI mode (--mode gui) runs upstream's native tkinter window, which needs
 # these; the other four frontends never import them (bootstrap stubs them

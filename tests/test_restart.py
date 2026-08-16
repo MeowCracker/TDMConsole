@@ -11,7 +11,7 @@ from tdm_cli import bootstrap
 
 bootstrap.setup()
 
-from tdm_cli.gui import GUIManager
+from tdm_cli.gui import GUIManager, _runtime_timestamps, mark_process_restart
 
 
 class RestartTests(unittest.IsolatedAsyncioTestCase):
@@ -137,6 +137,17 @@ class RestartTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertIsNone(manager._last_connection_failure_at)
         self.assertEqual(manager._long_reconnect_failures, 0)
+
+    def test_restart_time_is_recorded_without_replacing_start_time(self) -> None:
+        with (
+            patch.dict("tdm_cli.gui.os.environ", {}, clear=True),
+            patch("tdm_cli.gui.time", side_effect=(1_000.0, 2_000.0)),
+        ):
+            self.assertEqual(_runtime_timestamps(), (1_000.0, None))
+
+            mark_process_restart()
+
+            self.assertEqual(_runtime_timestamps(), (1_000.0, 2_000.0))
 
 
 if __name__ == "__main__":

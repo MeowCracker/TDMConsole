@@ -521,5 +521,6 @@ if __name__ == "__main__":
         exit_status, restart_requested = result
         if restart_requested:
             restart_args = [arg for arg in sys.argv if arg != "--update"]
+            cli_gui.mark_process_restart()
             os.execv(sys.executable, [sys.executable, *restart_args])
         sys.exit(exit_status)

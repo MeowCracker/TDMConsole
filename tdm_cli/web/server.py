@@ -153,6 +153,7 @@ def _process_rss_bytes() -> int:
 
 def _runtime_payload(
     started_at: float,
+    last_restart_at: float | None,
     process_vcpus: float,
     rss: int,
     memory_limit: int,
@@ -168,9 +169,16 @@ def _runtime_payload(
         "status": "ok",
         "uptime": _format_duration(now - started_at),
         "uptimeSeconds": max(0, int(now - started_at)),
-        "lastRestartAt": datetime.fromtimestamp(started_at, timezone.utc)
+        "startedAt": datetime.fromtimestamp(started_at, timezone.utc)
         .isoformat()
         .replace("+00:00", "Z"),
+        "lastRestartAt": (
+            datetime.fromtimestamp(last_restart_at, timezone.utc)
+            .isoformat()
+            .replace("+00:00", "Z")
+            if last_restart_at is not None
+            else None
+        ),
         "version": version["app"],
         "engine": {
             "version": version["engine"],
@@ -515,6 +523,7 @@ class WebServer:
         self._closed = asyncio.Event()
         self._log_cursor = 0
         self._started_at = manager.process_started_at
+        self._last_restart_at = manager.last_restart_at
         # Refreshed by _sample_cpu_loop; /runtime reads it without sleeping.
         self._vcpu_usage = 0.0
         # Command output is folded into the shared miner log so every client sees it.
@@ -724,6 +733,7 @@ class WebServer:
         return web.json_response(
             _runtime_payload(
                 self._started_at,
+                self._last_restart_at,
                 self._vcpu_usage,
                 rss,
                 _cgroup_memory_limit(),
