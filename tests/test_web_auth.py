@@ -211,11 +211,15 @@ class HealthcheckTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload["engine"], {"version": "2.4.5", "commit": "abc1234"})
         self.assertEqual(payload["cpu"]["usage"], "0.1/0.2 vCPU")
         self.assertEqual(payload["memory"]["usage"], "768.00M/2.00G")
-        self.assertEqual(payload["cache"], {"size": "768M", "sizeBytes": 768 * 1024 * 1024})
+        self.assertEqual(
+            payload["cache"], {"size": "768M", "sizeBytes": 768 * 1024 * 1024}
+        )
 
     async def test_healthcheck_returns_plain_ok(self) -> None:
         server = WebServer.__new__(WebServer)
-        response = await server._handle_healthcheck(make_mocked_request("GET", "/healthcheck"))
+        response = await server._handle_healthcheck(
+            make_mocked_request("GET", "/healthcheck")
+        )
 
         self.assertEqual(response.text, "ok")
         self.assertEqual(response.content_type, "text/plain")
@@ -226,10 +230,14 @@ class HealthcheckTests(unittest.IsolatedAsyncioTestCase):
         server._started_at = 1_700_000_000.0
         server._vcpu_usage = 0.0
         server._cache_size = (0.0, 0)
-        with patch("tdm_cli.web.server._process_rss_bytes", return_value=0), patch(
-            "tdm_cli.web.server._cache_size_bytes", return_value=0
-        ), patch("tdm_cli.web.server._runtime_payload", return_value={"status": "ok"}):
-            response = await server._handle_runtime(make_mocked_request("GET", "/runtime"))
+        with (
+            patch("tdm_cli.web.server._process_rss_bytes", return_value=0),
+            patch("tdm_cli.web.server._cache_size_bytes", return_value=0),
+            patch("tdm_cli.web.server._runtime_payload", return_value={"status": "ok"}),
+        ):
+            response = await server._handle_runtime(
+                make_mocked_request("GET", "/runtime")
+            )
 
         self.assertEqual(response.text, '{"status": "ok"}')
         self.assertEqual(response.headers["Cache-Control"], "no-store")

@@ -37,22 +37,24 @@ Presentation is delegated to a *frontend* object (``manager.frontend``):
 one by assigning the module-level ``FRONTEND_FACTORY`` before ``Twitch(...)``
 is constructed.
 """
+
 from __future__ import annotations
 
-import sys
 import asyncio
 import logging
 import webbrowser
 from dataclasses import dataclass
-from typing import Any, Callable, TypeVar, TYPE_CHECKING
+from time import monotonic
+from typing import TYPE_CHECKING, Any, Callable, TypeVar
 
-from translate import _
-from exceptions import ExitRequest
+import aiohttp
 from constants import OUTPUT_FORMATTER
+from exceptions import ExitRequest
+from translate import _
 
 from tdm_cli import console
-from tdm_cli.state import MinerState
 from tdm_cli.console import Color
+from tdm_cli.state import MinerState
 
 if TYPE_CHECKING:
     from collections import abc
@@ -66,6 +68,10 @@ if TYPE_CHECKING:
 
 _T = TypeVar("_T")
 logger = logging.getLogger("TwitchDrops")
+
+_RECONNECT_RESTART_DELAY = 180.0
+_RECONNECT_RESTART_FAILURES = 3
+_RECONNECT_DELAY_TOLERANCE = 1.0
 
 
 # Interface-mode -> frontend factory. "tui"/"repl" factories import their heavy
@@ -81,10 +87,11 @@ def register_frontend(mode: str, factory: Callable[["GUIManager"], Any]) -> None
 def make_frontend(mode: str, manager: GUIManager) -> Any:
     factory = FRONTEND_REGISTRY.get(mode)
     if factory is None:
-        logger.warning("No frontend registered for mode %r — falling back to headless", mode)
+        logger.warning(
+            "No frontend registered for mode %r — falling back to headless", mode
+        )
         factory = FRONTEND_REGISTRY["headless"]
     return factory(manager)
-
 
 
 # --------------------------------------------------------------------------- #
@@ -257,7 +264,9 @@ class WebsocketStatus:
     def __init__(self, manager: GUIManager):
         self._manager = manager
 
-    def update(self, idx: int, status: str | None = None, topics: int | None = None) -> None:
+    def update(
+        self, idx: int, status: str | None = None, topics: int | None = None
+    ) -> None:
         ws = self._manager.state.websockets
         old_status, old_topics = ws.get(idx, ("", 0))
         new_status = status if status is not None else old_status
@@ -294,7 +303,9 @@ class LoginForm:
                 self._manager.frontend.hide_login()
         self._manager.frontend.on_login(status, user_id)
 
-    def clear(self, login: bool = False, password: bool = False, token: bool = False) -> None:
+    def clear(
+        self, login: bool = False, password: bool = False, token: bool = False
+    ) -> None:
         # No stored input fields in CLI; nothing to clear.
         pass
 
@@ -569,6 +580,8 @@ class GUIManager:
         self._engine_update_result: str | None = None
         self._restart_requested = False
         self._restart_task: asyncio.Task[None] | None = None
+        self._last_connection_failure_at: float | None = None
+        self._long_reconnect_failures = 0
 
         # Components (order-independent; none touch a display)
         self.status = StatusBar(self)
@@ -613,6 +626,12 @@ class GUIManager:
         await self._close_requested.wait()
 
     async def coro_unless_closed(self, coro: abc.Awaitable[_T]) -> _T:
+        started_at = monotonic()
+        retry_delay = (
+            None
+            if self._last_connection_failure_at is None
+            else started_at - self._last_connection_failure_at
+        )
         tasks: list[asyncio.Task[Any]] = [
             asyncio.ensure_future(coro),
             asyncio.ensure_future(self._close_requested.wait()),
@@ -622,7 +641,36 @@ class GUIManager:
             task.cancel()
         if self._close_requested.is_set():
             raise ExitRequest()
-        return await next(iter(done))
+        try:
+            result = await next(iter(done))
+        except (aiohttp.ClientConnectionError, asyncio.TimeoutError):
+            self._record_connection_failure(retry_delay)
+            raise
+        self._reset_connection_failures()
+        return result
+
+    def _record_connection_failure(self, retry_delay: float | None) -> None:
+        self._last_connection_failure_at = monotonic()
+        if (
+            retry_delay is None
+            or retry_delay < _RECONNECT_RESTART_DELAY - _RECONNECT_DELAY_TOLERANCE
+        ):
+            self._long_reconnect_failures = 0
+            return
+
+        self._long_reconnect_failures += 1
+        if self._long_reconnect_failures < _RECONNECT_RESTART_FAILURES:
+            return
+
+        self._long_reconnect_failures = 0
+        self.request_restart(
+            "Twitch reconnect failed 3 times; restarting TDMConsole...",
+            "error",
+        )
+
+    def _reset_connection_failures(self) -> None:
+        self._last_connection_failure_at = None
+        self._long_reconnect_failures = 0
 
     def prevent_close(self) -> None:
         self._close_requested.clear()
@@ -660,7 +708,9 @@ class GUIManager:
         if mode == self.mode or self._switch_task is not None:
             return
         if mode in ("tui", "repl") and not console.INTERACTIVE:
-            self.print(f"Cannot switch to {mode} mode: no interactive terminal attached.")
+            self.print(
+                f"Cannot switch to {mode} mode: no interactive terminal attached."
+            )
             return
         self._switch_task = asyncio.create_task(self._switch_frontend(mode))
 
@@ -692,11 +742,15 @@ class GUIManager:
         self._engine_update_task = asyncio.create_task(self._update_engine())
         return True
 
-    def request_restart(self) -> bool:
+    def request_restart(
+        self,
+        message: str = "Restarting TDMConsole...",
+        style: str = "notify",
+    ) -> bool:
         """Gracefully shut down and replace this process with a fresh one."""
         if self._engine_update_task is not None:
             return False
-        return self._schedule_restart("Restarting TDMConsole...", "notify")
+        return self._schedule_restart(message, style)
 
     def _schedule_restart(self, message: str, style: str) -> bool:
         if self._restart_requested:
@@ -727,9 +781,7 @@ class GUIManager:
                 return
             self._engine_update_result = "updated"
             self._update_log(result.message, "success")
-            self._schedule_restart(
-                "Restarting to load the updated engine...", "notify"
-            )
+            self._schedule_restart("Restarting to load the updated engine...", "notify")
         except EngineUpdateError as exc:
             self._engine_update_result = "failed"
             self._update_log(f"Engine update failed: {exc}", "error")

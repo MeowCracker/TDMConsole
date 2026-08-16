@@ -18,6 +18,7 @@ zone (rule / ``❯`` prompt / rule / status line) is docked to the bottom. Ghost
 auto-complete comes from Textual's suggester (accept with →), and ↑/↓ recall
 command history.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -198,7 +199,9 @@ class ReplApp(App[None]):
         )
 
     # ---------------------------------------------------------------- output
-    def _write_line(self, text: str, style: str = "", *, stamp: str | None = None) -> None:
+    def _write_line(
+        self, text: str, style: str = "", *, stamp: str | None = None
+    ) -> None:
         line = Text()
         if stamp:
             line.append(f"{stamp} ", style="dim")

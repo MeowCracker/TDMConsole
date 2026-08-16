@@ -19,8 +19,12 @@ class CampaignSnapshotTests(unittest.TestCase):
             drops=[
                 SimpleNamespace(
                     benefits=[
-                        SimpleNamespace(name="Hat", image_url="https://example.test/hat.png"),
-                        SimpleNamespace(name="Emote", image_url="https://example.test/emote.png"),
+                        SimpleNamespace(
+                            name="Hat", image_url="https://example.test/hat.png"
+                        ),
+                        SimpleNamespace(
+                            name="Emote", image_url="https://example.test/emote.png"
+                        ),
                     ],
                     is_claimed=False,
                     progress=0.25,
@@ -33,16 +37,21 @@ class CampaignSnapshotTests(unittest.TestCase):
         result = _campaign_snapshot(campaign)
 
         self.assertEqual(result["game"], "Example Game")
-        self.assertEqual(result["drops"], [{
-            "rewards": [
-                {"name": "Hat", "image": "https://example.test/hat.png"},
-                {"name": "Emote", "image": "https://example.test/emote.png"},
+        self.assertEqual(
+            result["drops"],
+            [
+                {
+                    "rewards": [
+                        {"name": "Hat", "image": "https://example.test/hat.png"},
+                        {"name": "Emote", "image": "https://example.test/emote.png"},
+                    ],
+                    "claimed": False,
+                    "progress": 0.25,
+                    "currentMinutes": 15,
+                    "requiredMinutes": 60,
+                }
             ],
-            "claimed": False,
-            "progress": 0.25,
-            "currentMinutes": 15,
-            "requiredMinutes": 60,
-        }])
+        )
 
 
 if __name__ == "__main__":

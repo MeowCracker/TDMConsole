@@ -5,6 +5,7 @@ goes through an injected ``out(text, style)`` callback with *semantic* styles
 ("info", "success", "warn", "error", "dim", "bold") that each UI maps to its
 own colors (rich styles in the Textual REPL, ANSI in a plain terminal).
 """
+
 from __future__ import annotations
 
 import shlex
@@ -73,20 +74,29 @@ class CommandProcessor:
     def _cmd_status(self, args: list[str]) -> None:
         s = self._m.state
         self._out(f"Status   : {s.status or '-'}", "info")
-        user = f"user {s.user_id}" if s.user_id is not None else (s.login_status or "logged out")
+        user = (
+            f"user {s.user_id}"
+            if s.user_id is not None
+            else (s.login_status or "logged out")
+        )
         self._out(f"Login    : {user}")
         self._out(
             f"Watching : {s.watching_channel or '-'}"
             f"{f' ({s.watching_game})' if s.watching_game else ''}"
         )
         if s.drop_rewards:
-            self._out(f"Drop     : {s.drop_rewards}  {s.drop_progress:.1%}  ⏱ {s.drop_remaining}")
+            self._out(
+                f"Drop     : {s.drop_rewards}  {s.drop_progress:.1%}  ⏱ {s.drop_remaining}"
+            )
             self._out(
                 f"Campaign : {s.campaign_name}  "
                 f"{s.campaign_claimed}/{s.campaign_total}  "
                 f"{s.campaign_progress:.1%}  ⏱ {s.campaign_remaining}"
             )
-        ws = ", ".join(f"#{i + 1} {st}" for i, (st, _t) in sorted(s.websockets.items())) or "-"
+        ws = (
+            ", ".join(f"#{i + 1} {st}" for i, (st, _t) in sorted(s.websockets.items()))
+            or "-"
+        )
         self._out(f"Websocket: {ws}")
 
     def _cmd_channels(self, args: list[str]) -> None:
@@ -99,7 +109,11 @@ class CommandProcessor:
         for ch in channels.values():
             mark = "▶" if ch.name == watching else ("📌" if pinned is ch else " ")
             game = ch.game.name if ch.game is not None else "-"
-            status = "ONLINE" if ch.online else ("pending" if ch.pending_online else "offline")
+            status = (
+                "ONLINE"
+                if ch.online
+                else ("pending" if ch.pending_online else "offline")
+            )
             viewers = "-" if ch.viewers is None else str(ch.viewers)
             self._out(f" {mark} {ch.name:<20} {game:<24} {status:<8} {viewers:>7}")
 
@@ -227,9 +241,14 @@ class CommandProcessor:
                 "warn",
             )
             return
-        settings.proxy = URL() if value.lower() in ("clear", "none", "-") else URL(value)
+        settings.proxy = (
+            URL() if value.lower() in ("clear", "none", "-") else URL(value)
+        )
         settings.save()
-        self._out(f"Proxy set to {mask_proxy(settings.proxy) or '(none)'} — reloading...", "info")
+        self._out(
+            f"Proxy set to {mask_proxy(settings.proxy) or '(none)'} — reloading...",
+            "info",
+        )
         self._m._twitch.change_state(self._state_enum().RESTART)
 
     def _cmd_reload(self, args: list[str]) -> None:
@@ -251,7 +270,9 @@ class CommandProcessor:
             self._out("Usage: /update", "warn")
             return
         if not self._m.request_engine_update():
-            self._out("An engine update is already running or restart is pending.", "warn")
+            self._out(
+                "An engine update is already running or restart is pending.", "warn"
+            )
 
     def _cmd_switch_mode(self, args: list[str]) -> None:
         from tdm_cli.prefs import MODES
@@ -260,7 +281,10 @@ class CommandProcessor:
         # hot-swapped into a running CLI session, only chosen at launch.
         switchable = tuple(m for m in MODES if m != "gui")
         if args and args[0] == "gui":
-            self._out("The native GUI cannot be switched to live — restart with --mode gui.", "warn")
+            self._out(
+                "The native GUI cannot be switched to live — restart with --mode gui.",
+                "warn",
+            )
             return
         if not args or args[0] not in switchable:
             self._out(f"Usage: /switch-mode {'|'.join(switchable)}", "warn")

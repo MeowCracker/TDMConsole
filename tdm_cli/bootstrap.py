@@ -15,6 +15,7 @@ etc. It:
 Nothing in the submodule is modified, which is what keeps upstream syncing to a
 plain ``git submodule update --remote``.
 """
+
 from __future__ import annotations
 
 import os
@@ -26,9 +27,8 @@ _BUNDLED_SUBMODULE_DIR = os.path.normpath(
     os.path.join(_HERE, os.pardir, "TwitchDropsMiner")
 )
 _EXTERNAL_SUBMODULE_DIR = os.environ.get("TDM_ENGINE_DIR")
-if (
-    _EXTERNAL_SUBMODULE_DIR
-    and os.path.isfile(os.path.join(_EXTERNAL_SUBMODULE_DIR, "twitch.py"))
+if _EXTERNAL_SUBMODULE_DIR and os.path.isfile(
+    os.path.join(_EXTERNAL_SUBMODULE_DIR, "twitch.py")
 ):
     SUBMODULE_DIR = os.path.abspath(os.path.expanduser(_EXTERNAL_SUBMODULE_DIR))
 else:
@@ -45,7 +45,9 @@ _paths_done = False
 _done = False
 
 
-def setup_paths(settings_path: str | None = None, cookies_path: str | None = None) -> None:
+def setup_paths(
+    settings_path: str | None = None, cookies_path: str | None = None
+) -> None:
     """Put upstream on sys.path and repoint its constants. Idempotent.
 
     Needed by *every* mode before touching upstream modules or ``constants``.
@@ -224,16 +226,35 @@ def verify_contract() -> list[str]:
     # Members the core relies on, grouped by component.
     required: dict[str, tuple[str, ...]] = {
         "": (
-            "close_requested", "running", "wait_until_closed", "coro_unless_closed",
-            "prevent_close", "start", "stop", "close", "close_window", "save",
-            "grab_attention", "set_games", "display_drop", "clear_drop", "print",
+            "close_requested",
+            "running",
+            "wait_until_closed",
+            "coro_unless_closed",
+            "prevent_close",
+            "start",
+            "stop",
+            "close",
+            "close_window",
+            "save",
+            "grab_attention",
+            "set_games",
+            "display_drop",
+            "clear_drop",
+            "print",
         ),
         "status": ("update", "clear"),
         "tray": ("change_icon", "notify", "update_title"),
         "login": ("ask_enter_code", "ask_login", "update", "clear"),
         "progress": ("start_timer", "stop_timer", "minute_almost_done", "display"),
-        "channels": ("clear", "get_selection", "set_watching", "clear_watching",
-                     "display", "remove", "clear_selection"),
+        "channels": (
+            "clear",
+            "get_selection",
+            "set_watching",
+            "clear_watching",
+            "display",
+            "remove",
+            "clear_selection",
+        ),
         "inv": ("clear", "add_campaign", "update_drop"),
         "websockets": ("update", "remove"),
         "settings": ("set_games", "clear_selection"),

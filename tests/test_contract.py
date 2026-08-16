@@ -1,6 +1,7 @@
 """The whole design bets on tdm_cli.gui matching the upstream submodule's
 expectations — run bootstrap's own contract check as a test so CI catches an
 upstream interface drift on the pinned submodule."""
+
 from __future__ import annotations
 
 import unittest

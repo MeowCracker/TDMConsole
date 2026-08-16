@@ -5,6 +5,7 @@ format (``HH:MM:SS: message``) so on-screen output feels familiar. ANSI colour
 and the bell are only used when stdout is an interactive terminal, so piping to
 a file / journald / ``| cat`` yields clean, plain log lines.
 """
+
 from __future__ import annotations
 
 import sys

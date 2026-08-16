@@ -1,4 +1,5 @@
 """Small shared helpers that don't belong to any single frontend."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

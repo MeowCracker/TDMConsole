@@ -9,4 +9,3 @@ for a terminal implementation at import time (see :mod:`tdm_cli.bootstrap`).
 # (TwitchDropsMiner, whose version lives in the submodule's version.py). See
 # :mod:`tdm_cli.versioning` for how both are reported side by side.
 __version__ = "0.1.0"
-

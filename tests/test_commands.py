@@ -7,14 +7,18 @@ from unittest.mock import Mock
 from tdm_cli.commands import COMMANDS, CommandProcessor
 
 
-def _make_processor(mode: str = "repl") -> tuple[CommandProcessor, SimpleNamespace, list[tuple[str, str]]]:
+def _make_processor(
+    mode: str = "repl",
+) -> tuple[CommandProcessor, SimpleNamespace, list[tuple[str, str]]]:
     manager = SimpleNamespace(
         mode=mode,
         request_frontend=Mock(),
         request_restart=Mock(return_value=True),
     )
     out: list[tuple[str, str]] = []
-    processor = CommandProcessor(manager, lambda text, style="": out.append((text, style)))
+    processor = CommandProcessor(
+        manager, lambda text, style="": out.append((text, style))
+    )
     return processor, manager, out
 
 

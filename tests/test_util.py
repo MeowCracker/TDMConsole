@@ -13,7 +13,9 @@ class MaskProxyTests(unittest.TestCase):
         self.assertEqual(mask_proxy(""), "")
 
     def test_url_without_credentials_is_unchanged(self) -> None:
-        self.assertEqual(mask_proxy(URL("http://proxy.example:8080")), "http://proxy.example:8080")
+        self.assertEqual(
+            mask_proxy(URL("http://proxy.example:8080")), "http://proxy.example:8080"
+        )
 
     def test_password_is_masked(self) -> None:
         masked = mask_proxy(URL("http://user:hunter2@proxy.example:8080"))

@@ -83,60 +83,97 @@ if __name__ == "__main__":
         description="Mine timed drops on Twitch — interactive TUI / headless CLI.",
     )
     parser.add_argument(
-        "command", nargs="?", choices=("init",), default=None,
+        "command",
+        nargs="?",
+        choices=("init",),
+        default=None,
         help="init: interactive wizard that generates the settings file",
     )
     parser.add_argument(
-        "-c", "--config", dest="_config", metavar="PATH", default=None,
+        "-c",
+        "--config",
+        dest="_config",
+        metavar="PATH",
+        default=None,
         help="path of the settings file (default: ./settings.json)",
     )
     parser.add_argument(
-        "--proxy", dest="_proxy", metavar="URL", default=None,
+        "--proxy",
+        dest="_proxy",
+        metavar="URL",
+        default=None,
         help="proxy URL, e.g. http://127.0.0.1:7890 (saved into the settings file)",
     )
     parser.add_argument(
-        "--games", dest="_games", metavar="LIST", default=None,
+        "--games",
+        dest="_games",
+        metavar="LIST",
+        default=None,
         help='comma-separated priority games, e.g. "Rust,VALORANT" '
-             "(overrides the settings file's priority list)",
+        "(overrides the settings file's priority list)",
     )
     parser.add_argument(
-        "--cookie", dest="_cookie", metavar="TOKEN", default=None,
+        "--cookie",
+        dest="_cookie",
+        metavar="TOKEN",
+        default=None,
         help="Twitch auth token; writes it into the cookie jar before starting "
-             "(skips the device-code login)",
+        "(skips the device-code login)",
     )
     parser.add_argument(
-        "--jar", dest="_jar", metavar="PATH", default=None,
+        "--jar",
+        dest="_jar",
+        metavar="PATH",
+        default=None,
         help="path of the cookie jar file (default: ./cookies.jar)",
     )
     parser.add_argument(
-        "--mode", dest="_mode",
-        choices=("tui", "repl", "web", "gui", "headless"), default=None,
+        "--mode",
+        dest="_mode",
+        choices=("tui", "repl", "web", "gui", "headless"),
+        default=None,
         help="interface mode: tui (full-screen dashboard), repl (slash-command "
-             "prompt), web (browser UI for Docker), gui (upstream tkinter "
-             "window), headless (plain logs); default: saved preference, else web",
+        "prompt), web (browser UI for Docker), gui (upstream tkinter "
+        "window), headless (plain logs); default: saved preference, else web",
     )
     parser.add_argument(
-        "--host", dest="_host", metavar="ADDR", default=None,
+        "--host",
+        dest="_host",
+        metavar="ADDR",
+        default=None,
         help="web mode bind address (default: $TDM_WEB_HOST or 127.0.0.1; "
-             "use 0.0.0.0 in Docker)",
+        "use 0.0.0.0 in Docker)",
     )
     parser.add_argument(
-        "--port", dest="_port", metavar="PORT", type=int, default=None,
+        "--port",
+        dest="_port",
+        metavar="PORT",
+        type=int,
+        default=None,
         help="web mode port (default: $TDM_WEB_PORT or 8080)",
     )
     parser.add_argument(
-        "--username", dest="_username", metavar="USERNAME", default=None,
+        "--username",
+        dest="_username",
+        metavar="USERNAME",
+        default=None,
         help="require this username for WebUI access (requires --password; "
-             "or set $TDM_WEB_USERNAME)",
+        "or set $TDM_WEB_USERNAME)",
     )
     parser.add_argument(
-        "--password", dest="_password", metavar="PASSWORD", default=None,
+        "--password",
+        dest="_password",
+        metavar="PASSWORD",
+        default=None,
         help="require this password for WebUI access (requires --username; "
-             "prefer $TDM_WEB_PASSWORD — CLI arguments are visible in the "
-             "process list)",
+        "prefer $TDM_WEB_PASSWORD — CLI arguments are visible in the "
+        "process list)",
     )
     parser.add_argument(
-        "-v", dest="_verbose", action="count", default=0,
+        "-v",
+        dest="_verbose",
+        action="count",
+        default=0,
         help="increase verbosity (repeatable, up to -vvvv)",
     )
     parser.add_argument("--log", action="store_true", help="write a log file (log.txt)")
@@ -144,11 +181,14 @@ if __name__ == "__main__":
         "--dump", action="store_true", help="dump some payloads for debugging"
     )
     parser.add_argument(
-        "--update", dest="_update", action="store_true",
+        "--update",
+        dest="_update",
+        action="store_true",
         help="update the TwitchDropsMiner engine before starting (source/Docker only)",
     )
     parser.add_argument(
-        "--check-contract", action="store_true",
+        "--check-contract",
+        action="store_true",
         help="verify the CLI gui shim matches the upstream submodule, then exit",
     )
     # Undocumented debug args (kept name-compatible with upstream).
@@ -159,7 +199,9 @@ if __name__ == "__main__":
         "--debug-gql", dest="_debug_gql", action="store_true", help=argparse.SUPPRESS
     )
     # --version needs the submodule on sys.path; handled after bootstrap below.
-    parser.add_argument("--version", action="store_true", help="print the version and exit")
+    parser.add_argument(
+        "--version", action="store_true", help="print the version and exit"
+    )
     args = parser.parse_args(namespace=ParsedArgs())
     # 'tray' is a GUI-only concept, but Settings reads it off the args object.
     args.tray = False
@@ -182,7 +224,9 @@ if __name__ == "__main__":
         args._password = os.environ.get("TDM_WEB_PASSWORD")
         creds_from_env = True
         if not args._username or not args._password:
-            parser.error("TDM_WEB_USERNAME and TDM_WEB_PASSWORD must both be set and non-empty")
+            parser.error(
+                "TDM_WEB_USERNAME and TDM_WEB_PASSWORD must both be set and non-empty"
+            )
         if ":" in args._username:
             parser.error("TDM_WEB_USERNAME cannot contain ':'")
 

@@ -6,6 +6,7 @@ what the pristine core expects to load.
 
 Import this only after :func:`tdm_cli.bootstrap.setup` has run.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

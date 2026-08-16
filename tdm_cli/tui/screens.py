@@ -1,4 +1,5 @@
 """Interactive screens for the TUI: device-code login, game priority, settings."""
+
 from __future__ import annotations
 
 import webbrowser
@@ -242,7 +243,8 @@ class GamesScreen(Screen[None]):
     def action_exclude(self) -> None:
         focused = self.focused
         if isinstance(focused, OptionList) and focused.id in (
-            "games-available", "games-priority"
+            "games-available",
+            "games-priority",
         ):
             name = self._highlighted_value(focused)
             if name:
@@ -264,7 +266,8 @@ class GamesScreen(Screen[None]):
         new_index = index + delta
         if 0 <= new_index < len(self._priority):
             self._priority[index], self._priority[new_index] = (
-                self._priority[new_index], self._priority[index],
+                self._priority[new_index],
+                self._priority[index],
             )
             self._refresh()
             focused.highlighted = new_index
@@ -278,7 +281,8 @@ class GamesScreen(Screen[None]):
     def action_remove(self) -> None:
         focused = self.focused
         if isinstance(focused, OptionList) and focused.id in (
-            "games-priority", "games-excluded"
+            "games-priority",
+            "games-excluded",
         ):
             name = self._highlighted_value(focused)
             if name is None:
@@ -346,10 +350,12 @@ class SettingsScreen(Screen[None]):
         with Horizontal():
             yield Label("Interface mode")
             yield Select(
-                [("Full-screen dashboard (TUI)", "tui"),
-                 ("Command REPL (Claude-Code style)", "repl"),
-                 ("Web UI (browser, for Docker)", "web"),
-                 ("Plain log (headless)", "headless")],
+                [
+                    ("Full-screen dashboard (TUI)", "tui"),
+                    ("Command REPL (Claude-Code style)", "repl"),
+                    ("Web UI (browser, for Docker)", "web"),
+                    ("Plain log (headless)", "headless"),
+                ],
                 value=self._m.mode,
                 allow_blank=False,
                 id="set-mode",
@@ -361,7 +367,9 @@ class SettingsScreen(Screen[None]):
             yield Label("Language")
             yield Select(
                 [(lang, lang) for lang in languages],
-                value=settings.language if settings.language in languages else DEFAULT_LANG,
+                value=settings.language
+                if settings.language in languages
+                else DEFAULT_LANG,
                 allow_blank=False,
                 id="set-language",
             )

@@ -5,6 +5,7 @@ the Textual app: the manager's ``start()`` launches the app as a task on the
 same asyncio loop the miner runs on, and all rendering is timer-driven off
 ``manager.state`` — so the event hooks here are no-ops.
 """
+
 from __future__ import annotations
 
 import sys

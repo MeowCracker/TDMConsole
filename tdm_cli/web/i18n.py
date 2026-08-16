@@ -11,6 +11,7 @@ language and can override it in Settings; the choice is saved in localStorage.
 
 Nothing here touches the submodule — it only *reads* its lang files.
 """
+
 from __future__ import annotations
 
 import json
@@ -92,7 +93,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "conn.disconnected": "disconnected — reconnecting…",
         "footer.repo": "Source & docs",
         "footer.version": "version",
-        "footer.engine": 'engine',
+        "footer.engine": "engine",
     },
     "简体中文": {
         "app.tagline": "Twitch 掉宝挖掘器",
@@ -160,7 +161,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "conn.disconnected": "已断开——正在重连…",
         "footer.repo": "源码与文档",
         "footer.version": "版本",
-        "footer.engine": '引擎',
+        "footer.engine": "引擎",
     },
     "繁體中文": {
         "app.tagline": "Twitch 掉寶挖掘器",
@@ -212,7 +213,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "conn.disconnected": "已中斷——正在重新連線…",
         "footer.repo": "原始碼與文件",
         "footer.version": "版本",
-        "footer.engine": '引擎',
+        "footer.engine": "引擎",
         "panel.campaigns": "掉寶活動",
         "channels.empty": "尚無頻道…",
         "campaigns.empty": "庫存為空…",
@@ -257,7 +258,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "conn.disconnected": "切断 — 再接続中…",
         "footer.repo": "ソースとドキュメント",
         "footer.version": "バージョン",
-        "footer.engine": 'エンジン',
+        "footer.engine": "エンジン",
         "panel.campaigns": "キャンペーン",
         "channels.empty": "チャンネルがまだありません…",
         "campaigns.empty": "インベントリは空です…",
@@ -306,7 +307,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "conn.disconnected": "getrennt — verbinde erneut…",
         "footer.repo": "Quellcode & Doku",
         "footer.version": "Version",
-        "footer.engine": 'Engine',
+        "footer.engine": "Engine",
     },
     "Français": {
         "app.tagline": "Twitch Drops Miner",
@@ -352,7 +353,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "conn.disconnected": "déconnecté — reconnexion…",
         "footer.repo": "Source & docs",
         "footer.version": "version",
-        "footer.engine": 'moteur',
+        "footer.engine": "moteur",
     },
     "Español": {
         "app.tagline": "Twitch Drops Miner",
@@ -398,7 +399,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "conn.disconnected": "desconectado — reconectando…",
         "footer.repo": "Código y documentación",
         "footer.version": "versión",
-        "footer.engine": 'motor',
+        "footer.engine": "motor",
     },
     "Italiano": {
         "app.tagline": "Twitch Drops Miner",
@@ -444,7 +445,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "conn.disconnected": "disconnesso — riconnessione…",
         "footer.repo": "Sorgente e documentazione",
         "footer.version": "versione",
-        "footer.engine": 'motore',
+        "footer.engine": "motore",
     },
     "Português": {
         "app.tagline": "Twitch Drops Miner",
@@ -490,7 +491,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "conn.disconnected": "desconectado — reconectando…",
         "footer.repo": "Código e documentação",
         "footer.version": "versão",
-        "footer.engine": 'motor',
+        "footer.engine": "motor",
     },
     "Русский": {
         "app.tagline": "Twitch Drops Miner",
@@ -536,7 +537,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "conn.disconnected": "отключено — переподключение…",
         "footer.repo": "Исходный код и документация",
         "footer.version": "версия",
-        "footer.engine": 'движок',
+        "footer.engine": "движок",
     },
     "Türkçe": {
         "app.tagline": "Twitch Drops Miner",
@@ -582,7 +583,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "conn.disconnected": "bağlantı kesildi — yeniden bağlanılıyor…",
         "footer.repo": "Kaynak ve belgeler",
         "footer.version": "sürüm",
-        "footer.engine": 'motor',
+        "footer.engine": "motor",
     },
     "Polski": {
         "app.tagline": "Twitch Drops Miner",
@@ -628,7 +629,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "conn.disconnected": "rozłączono — ponowne łączenie…",
         "footer.repo": "Źródło i dokumentacja",
         "footer.version": "wersja",
-        "footer.engine": 'silnik',
+        "footer.engine": "silnik",
     },
     "Nederlandse": {
         "app.tagline": "Twitch Drops Miner",
@@ -674,7 +675,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "conn.disconnected": "verbroken — opnieuw verbinden…",
         "footer.repo": "Broncode & documentatie",
         "footer.version": "versie",
-        "footer.engine": 'engine',
+        "footer.engine": "engine",
     },
     "Dansk": {
         "app.tagline": "Twitch Drops Miner",
@@ -720,7 +721,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "conn.disconnected": "afbrudt — genopretter forbindelse…",
         "footer.repo": "Kildekode og dokumentation",
         "footer.version": "version",
-        "footer.engine": 'motor',
+        "footer.engine": "motor",
     },
     "Norsk": {
         "app.tagline": "Twitch Drops Miner",
@@ -766,7 +767,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "conn.disconnected": "frakoblet — kobler til igjen…",
         "footer.repo": "Kildekode og dokumentasjon",
         "footer.version": "versjon",
-        "footer.engine": 'motor',
+        "footer.engine": "motor",
     },
     "Čeština": {
         "app.tagline": "Twitch Drops Miner",
@@ -812,7 +813,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "conn.disconnected": "odpojeno — připojuji znovu…",
         "footer.repo": "Zdroj a dokumentace",
         "footer.version": "verze",
-        "footer.engine": 'jádro',
+        "footer.engine": "jádro",
     },
     "Magyar": {
         "app.tagline": "Twitch Drops Miner",
@@ -858,7 +859,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "conn.disconnected": "kapcsolat megszakadt — újracsatlakozás…",
         "footer.repo": "Forrás és dokumentáció",
         "footer.version": "verzió",
-        "footer.engine": 'motor',
+        "footer.engine": "motor",
     },
     "Română": {
         "app.tagline": "Twitch Drops Miner",
@@ -904,7 +905,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "conn.disconnected": "deconectat — se reconectează…",
         "footer.repo": "Sursă și documentație",
         "footer.version": "versiune",
-        "footer.engine": 'motor',
+        "footer.engine": "motor",
     },
     "Українська": {
         "app.tagline": "Twitch Drops Miner",
@@ -950,7 +951,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "conn.disconnected": "від'єднано — повторне підключення…",
         "footer.repo": "Джерело та документація",
         "footer.version": "версія",
-        "footer.engine": 'рушій',
+        "footer.engine": "рушій",
     },
     "العربية": {
         "app.tagline": "Twitch Drops Miner",
@@ -996,7 +997,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "conn.disconnected": "انقطع الاتصال — تجري إعادة الاتصال…",
         "footer.repo": "المصدر والوثائق",
         "footer.version": "الإصدار",
-        "footer.engine": 'محرك',
+        "footer.engine": "محرك",
     },
     "Indonesian": {
         "app.tagline": "Twitch Drops Miner",
@@ -1042,7 +1043,7 @@ _EXTRA: dict[str, dict[str, str]] = {
         "conn.disconnected": "terputus — menyambungkan kembali…",
         "footer.repo": "Sumber & dokumentasi",
         "footer.version": "versi",
-        "footer.engine": 'mesin',
+        "footer.engine": "mesin",
     },
 }
 
@@ -1149,7 +1150,9 @@ def catalogue(code: str) -> dict[str, str]:
     if code in _EXTRA:
         out.update(_EXTRA[code])
     # strip trailing ": " / " " that upstream uses for inline labels
-    return {k: v.rstrip(": ").strip() if isinstance(v, str) else v for k, v in out.items()}
+    return {
+        k: v.rstrip(": ").strip() if isinstance(v, str) else v for k, v in out.items()
+    }
 
 
 def strings_for(lang: str) -> dict[str, Any]:

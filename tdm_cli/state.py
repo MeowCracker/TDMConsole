@@ -7,6 +7,7 @@ couple of monotonic counters, no callbacks.
 
 Everything runs on one asyncio loop; no locking is needed.
 """
+
 from __future__ import annotations
 
 from collections import deque

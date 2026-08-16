@@ -14,6 +14,7 @@ The engine commit hash is resolved in this order:
 3. ``tdm_cli/_build_info.py`` — written at image/executable build time.
 4. ``"unknown"`` — nothing else worked (should not happen for a real release).
 """
+
 from __future__ import annotations
 
 import functools
@@ -68,7 +69,9 @@ def _git_hash() -> str | None:
     try:
         out = subprocess.run(
             ["git", "-C", str(engine_dir), "rev-parse", "--short", "HEAD"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         h = out.stdout.strip()
         return h or None

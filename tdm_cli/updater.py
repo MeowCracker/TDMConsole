@@ -1,4 +1,5 @@
 """Update the pristine TwitchDropsMiner engine for source and Docker runs."""
+
 from __future__ import annotations
 
 import json
@@ -85,9 +86,13 @@ def _update_git_submodule() -> UpdateResult:
             timeout=180,
         )
     except FileNotFoundError as exc:
-        raise EngineUpdateError("Git is required to update the source submodule.") from exc
+        raise EngineUpdateError(
+            "Git is required to update the source submodule."
+        ) from exc
     except subprocess.TimeoutExpired as exc:
-        raise EngineUpdateError("Timed out while updating the engine submodule.") from exc
+        raise EngineUpdateError(
+            "Timed out while updating the engine submodule."
+        ) from exc
     except subprocess.CalledProcessError as exc:
         detail = (exc.stderr or exc.stdout or str(exc)).strip()
         raise EngineUpdateError(f"Git failed to update the engine: {detail}") from exc
@@ -162,7 +167,9 @@ def _latest_commit() -> str:
         with urllib.request.urlopen(request, timeout=30) as response:
             payload = json.load(response)
     except (OSError, ValueError, urllib.error.URLError) as exc:
-        raise EngineUpdateError(f"Could not query the latest engine commit: {exc}") from exc
+        raise EngineUpdateError(
+            f"Could not query the latest engine commit: {exc}"
+        ) from exc
     commit = payload.get("sha") if isinstance(payload, dict) else None
     if not isinstance(commit, str) or len(commit) < 7:
         raise EngineUpdateError("GitHub returned an invalid engine commit.")
@@ -171,19 +178,28 @@ def _latest_commit() -> str:
 
 def _download_archive(commit: str, destination: Path) -> None:
     url = f"https://github.com/{ENGINE_REPOSITORY}/archive/{commit}.tar.gz"
-    request = urllib.request.Request(url, headers={"User-Agent": "TDMConsole-engine-updater"})
+    request = urllib.request.Request(
+        url, headers={"User-Agent": "TDMConsole-engine-updater"}
+    )
     try:
-        with urllib.request.urlopen(request, timeout=60) as response, destination.open("wb") as out:
+        with (
+            urllib.request.urlopen(request, timeout=60) as response,
+            destination.open("wb") as out,
+        ):
             total = 0
             while chunk := response.read(1024 * 1024):
                 total += len(chunk)
                 if total > _MAX_ARCHIVE_BYTES:
-                    raise EngineUpdateError("Engine archive exceeds the 128 MiB safety limit.")
+                    raise EngineUpdateError(
+                        "Engine archive exceeds the 128 MiB safety limit."
+                    )
                 out.write(chunk)
     except EngineUpdateError:
         raise
     except (OSError, urllib.error.URLError) as exc:
-        raise EngineUpdateError(f"Could not download the engine archive: {exc}") from exc
+        raise EngineUpdateError(
+            f"Could not download the engine archive: {exc}"
+        ) from exc
 
 
 def _extract_archive(archive: Path, destination: Path) -> None:
@@ -195,14 +211,18 @@ def _extract_archive(archive: Path, destination: Path) -> None:
                 raise EngineUpdateError("Engine archive contains too many entries.")
             extracted_bytes = sum(member.size for member in members if member.isfile())
             if extracted_bytes > _MAX_EXTRACTED_BYTES:
-                raise EngineUpdateError("Engine archive exceeds the 512 MiB extraction limit.")
+                raise EngineUpdateError(
+                    "Engine archive exceeds the 512 MiB extraction limit."
+                )
             roots = {
                 PurePosixPath(member.name).parts[0]
                 for member in members
                 if PurePosixPath(member.name).parts
             }
             if len(roots) != 1:
-                raise EngineUpdateError("Engine archive has an unexpected directory layout.")
+                raise EngineUpdateError(
+                    "Engine archive has an unexpected directory layout."
+                )
             root = next(iter(roots))
             for member in members:
                 parts = PurePosixPath(member.name).parts
@@ -219,12 +239,16 @@ def _extract_archive(archive: Path, destination: Path) -> None:
                     output.parent.mkdir(parents=True, exist_ok=True)
                     source = bundle.extractfile(member)
                     if source is None:
-                        raise EngineUpdateError(f"Could not read {member.name} from archive.")
+                        raise EngineUpdateError(
+                            f"Could not read {member.name} from archive."
+                        )
                     with source, output.open("wb") as target_file:
                         shutil.copyfileobj(source, target_file)
                     output.chmod(member.mode & 0o777)
                 else:
-                    raise EngineUpdateError("Engine archive contains unsupported links or devices.")
+                    raise EngineUpdateError(
+                        "Engine archive contains unsupported links or devices."
+                    )
     except EngineUpdateError:
         raise
     except (OSError, tarfile.TarError, ValueError) as exc:
@@ -238,7 +262,9 @@ def _validate_engine(directory: Path) -> None:
         directory / "settings.py",
         directory / "gui.py",
     )
-    missing = [str(path.relative_to(directory)) for path in required if not path.is_file()]
+    missing = [
+        str(path.relative_to(directory)) for path in required if not path.is_file()
+    ]
     lang_dir = directory / "lang"
     if not lang_dir.is_dir() or not any(lang_dir.glob("*.json")):
         missing.append("lang/*.json")
@@ -248,7 +274,9 @@ def _validate_engine(directory: Path) -> None:
 
 def _install_candidate(candidate: Path, target: Path) -> None:
     if target.is_symlink():
-        raise EngineUpdateError(f"Refusing to replace symlinked engine directory: {target}")
+        raise EngineUpdateError(
+            f"Refusing to replace symlinked engine directory: {target}"
+        )
     backup = target.with_name(f".{target.name}.previous")
     if backup.exists():
         shutil.rmtree(backup)

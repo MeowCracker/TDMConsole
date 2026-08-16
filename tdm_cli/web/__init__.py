@@ -4,6 +4,7 @@ Unlike the terminal frontends it does not take over stdout, so it needs no TTY:
 ``main.py`` selects it for ``--mode web`` and never downgrades it. Host/port are
 set on this module (from CLI flags / env) before the manager is constructed.
 """
+
 from __future__ import annotations
 
 import sys
@@ -48,7 +49,9 @@ class WebFrontend:
         try:
             await self._server.start()
         except Exception as exc:
-            print(f"Web server failed to start on {HOST}:{PORT}: {exc!r}", file=sys.stderr)
+            print(
+                f"Web server failed to start on {HOST}:{PORT}: {exc!r}", file=sys.stderr
+            )
             if not self._intentional_stop and not self._m.close_requested:
                 self._m.close()
             self._server = None

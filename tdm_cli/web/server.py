@@ -8,6 +8,7 @@ receives ``/`` commands routed through the shared
 All broadcasting is snapshot-based off ``manager.state`` — the frontend event
 hooks stay no-ops, exactly like the Textual tick loop.
 """
+
 from __future__ import annotations
 
 import json
@@ -91,7 +92,9 @@ def _read_int(path: Path) -> int | None:
 
 def _cgroup_vcpu_limit() -> float | None:
     try:
-        quota, period = Path("/sys/fs/cgroup/cpu.max").read_text(encoding="ascii").split()
+        quota, period = (
+            Path("/sys/fs/cgroup/cpu.max").read_text(encoding="ascii").split()
+        )
         if quota != "max" and int(period) > 0:
             return int(quota) / int(period)
     except (OSError, ValueError):
@@ -283,7 +286,11 @@ class _LoginThrottle:
         self._entries: dict[str, tuple[int, float, float]] = {}
 
     def _evict_idle(self, now: float) -> None:
-        stale = [ip for ip, (_, _, seen) in self._entries.items() if now - seen > self._IDLE_EVICT]
+        stale = [
+            ip
+            for ip, (_, _, seen) in self._entries.items()
+            if now - seen > self._IDLE_EVICT
+        ]
         for ip in stale:
             del self._entries[ip]
 
@@ -303,7 +310,9 @@ class _LoginThrottle:
         fails = self._entries.get(ip, (0, 0.0, now))[0] + 1
         locked_until = 0.0
         if fails >= self.THRESHOLD:
-            locked_until = now + min(self.BASE_LOCK * 2 ** (fails - self.THRESHOLD), self.MAX_LOCK)
+            locked_until = now + min(
+                self.BASE_LOCK * 2 ** (fails - self.THRESHOLD), self.MAX_LOCK
+            )
         self._entries[ip] = (fails, locked_until, now)
 
     def reset(self, ip: str) -> None:
@@ -572,7 +581,11 @@ class WebServer:
         await self._site.start()
         self._broadcast_task = asyncio.create_task(self._broadcast_loop())
         self._cpu_task = asyncio.create_task(self._sample_cpu_loop())
-        if self._sessions is not None and self._host not in ("127.0.0.1", "localhost", "::1"):
+        if self._sessions is not None and self._host not in (
+            "127.0.0.1",
+            "localhost",
+            "::1",
+        ):
             warning = (
                 f"WebUI authentication is enabled but serving plain HTTP on {self._host} — "
                 "credentials and session cookies travel unencrypted; put an HTTPS "

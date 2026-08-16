@@ -18,6 +18,7 @@ Interactions:
   Enter (channels table)    pin + switch to the selected channel
   Esc                       unpin (auto-selection resumes)
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -30,7 +31,12 @@ from textual.widgets import DataTable, Footer, RichLog, Static
 
 from constants import State
 
-from tdm_cli.tui.screens import LoginScreen, GamesScreen, SettingsScreen, sync_login_modal
+from tdm_cli.tui.screens import (
+    LoginScreen,
+    GamesScreen,
+    SettingsScreen,
+    sync_login_modal,
+)
 
 if TYPE_CHECKING:
     from tdm_cli.gui import GUIManager
@@ -181,7 +187,9 @@ class MinerApp(App[None]):
                 f" ({state.campaign_claimed}/{state.campaign_total} claimed)\n          "
             )
             text.append(bar(state.campaign_progress), "cyan")
-            text.append(f" {state.campaign_progress:6.1%}  ⏱ {state.campaign_remaining}")
+            text.append(
+                f" {state.campaign_progress:6.1%}  ⏱ {state.campaign_remaining}"
+            )
         else:
             text.append("Drop      ", "bold")
             text.append("-\n")
