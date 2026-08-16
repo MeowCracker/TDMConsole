@@ -151,33 +151,11 @@ def _process_rss_bytes() -> int:
         return 0
 
 
-def _cache_size_bytes() -> int:
-    try:
-        from constants import CACHE_PATH
-
-        cache_path = Path(CACHE_PATH)
-    except (ImportError, AttributeError):
-        cache_path = Path(os.environ.get("TDM_DATA_DIR", "."), "cache")
-
-    total = 0
-    try:
-        for path in cache_path.rglob("*"):
-            if path.is_file():
-                try:
-                    total += path.stat().st_size
-                except OSError:
-                    continue
-    except OSError:
-        pass
-    return total
-
-
 def _runtime_payload(
     started_at: float,
     process_vcpus: float,
     rss: int,
     memory_limit: int,
-    cache_size: int,
 ) -> dict[str, Any]:
     """Pure formatter — every potentially-slow value is collected by the
     caller (off the event loop where needed) and passed in."""
@@ -190,7 +168,7 @@ def _runtime_payload(
         "status": "ok",
         "uptime": _format_duration(now - started_at),
         "uptimeSeconds": max(0, int(now - started_at)),
-        "startedAt": datetime.fromtimestamp(started_at, timezone.utc)
+        "lastRestartAt": datetime.fromtimestamp(started_at, timezone.utc)
         .isoformat()
         .replace("+00:00", "Z"),
         "version": version["app"],
@@ -210,10 +188,6 @@ def _runtime_payload(
             ),
             "usedBytes": rss,
             "limitBytes": memory_limit,
-        },
-        "cache": {
-            "size": _format_bytes(cache_size),
-            "sizeBytes": cache_size,
         },
     }
 
@@ -540,9 +514,7 @@ class WebServer:
         self._cpu_task: asyncio.Task[None] | None = None
         self._closed = asyncio.Event()
         self._log_cursor = 0
-        self._started_at = time.time()
-        # (sampled_at, bytes) — cache-dir walks are slow, refresh at most every 30s.
-        self._cache_size: tuple[float, int] = (0.0, 0)
+        self._started_at = manager.process_started_at
         # Refreshed by _sample_cpu_loop; /runtime reads it without sleeping.
         self._vcpu_usage = 0.0
         # Command output is folded into the shared miner log so every client sees it.
@@ -746,30 +718,18 @@ class WebServer:
         )
 
     async def _handle_runtime(self, request: web.Request) -> web.StreamResponse:
-        # The miner shares this event loop — collect every potentially-slow
-        # value off-loop (or from a cache) before formatting the payload.
+        # The miner shares this event loop — collect potentially-slow process
+        # memory usage off-loop before formatting the payload.
         rss = await asyncio.to_thread(_process_rss_bytes)
-        cache_size = await self._cached_cache_size()
         return web.json_response(
             _runtime_payload(
                 self._started_at,
                 self._vcpu_usage,
                 rss,
                 _cgroup_memory_limit(),
-                cache_size,
             ),
             headers=self._NO_STORE,
         )
-
-    async def _cached_cache_size(self) -> int:
-        """Cache-dir size with a 30s TTL; the walk runs in a worker thread."""
-        sampled_at, value = self._cache_size
-        now = time.monotonic()
-        if now - sampled_at < 30.0:
-            return value
-        value = await asyncio.to_thread(_cache_size_bytes)
-        self._cache_size = (time.monotonic(), value)
-        return value
 
     async def _sample_cpu_loop(self) -> None:
         """Refresh the process CPU usage every 5s so /runtime never sleeps."""

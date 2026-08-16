@@ -44,7 +44,7 @@ import asyncio
 import logging
 import webbrowser
 from dataclasses import dataclass
-from time import monotonic
+from time import monotonic, time
 from typing import TYPE_CHECKING, Any, Callable, TypeVar
 
 import aiohttp
@@ -573,6 +573,7 @@ class GUIManager:
         self._poll_task: asyncio.Task[None] | None = None
 
         self.state = MinerState()
+        self.process_started_at = time()
         self.mode = ACTIVE_MODE
         self.frontend = make_frontend(self.mode, self)
         self._switch_task: asyncio.Task[None] | None = None

@@ -203,17 +203,15 @@ class HealthcheckTests(unittest.IsolatedAsyncioTestCase):
             0.125,
             rss=768 * 1024 * 1024,
             memory_limit=2 * 1024**3,
-            cache_size=768 * 1024 * 1024,
         )
 
         self.assertEqual(payload["uptime"], "1h 1m 1s")
+        self.assertEqual(payload["lastRestartAt"], "2023-11-14T22:13:20Z")
         self.assertEqual(payload["version"], "1.2.3")
         self.assertEqual(payload["engine"], {"version": "2.4.5", "commit": "abc1234"})
         self.assertEqual(payload["cpu"]["usage"], "0.1/0.2 vCPU")
         self.assertEqual(payload["memory"]["usage"], "768.00M/2.00G")
-        self.assertEqual(
-            payload["cache"], {"size": "768M", "sizeBytes": 768 * 1024 * 1024}
-        )
+        self.assertNotIn("cache", payload)
 
     async def test_healthcheck_returns_plain_ok(self) -> None:
         server = WebServer.__new__(WebServer)
@@ -229,10 +227,8 @@ class HealthcheckTests(unittest.IsolatedAsyncioTestCase):
         server = WebServer.__new__(WebServer)
         server._started_at = 1_700_000_000.0
         server._vcpu_usage = 0.0
-        server._cache_size = (0.0, 0)
         with (
             patch("tdm_cli.web.server._process_rss_bytes", return_value=0),
-            patch("tdm_cli.web.server._cache_size_bytes", return_value=0),
             patch("tdm_cli.web.server._runtime_payload", return_value={"status": "ok"}),
         ):
             response = await server._handle_runtime(

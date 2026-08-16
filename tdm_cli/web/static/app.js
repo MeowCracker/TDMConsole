@@ -194,8 +194,8 @@ async function initMeta() {
 function renderRuntime(runtime) {
   if (!runtime) return;
   $("runtime-uptime").textContent = runtime.uptime || "—";
-  $("runtime-started").textContent = runtime.startedAt
-    ? new Date(runtime.startedAt).toLocaleString() : "—";
+  $("runtime-last-restart").textContent = runtime.lastRestartAt
+    ? new Date(runtime.lastRestartAt).toLocaleString() : "—";
   $("runtime-version").textContent = runtime.version || "—";
   const engine = runtime.engine || {};
   $("runtime-engine").textContent = engine.version
@@ -203,7 +203,6 @@ function renderRuntime(runtime) {
     : "—";
   $("runtime-cpu").textContent = runtime.cpu && runtime.cpu.usage || "—";
   $("runtime-memory").textContent = runtime.memory && runtime.memory.usage || "—";
-  $("runtime-cache").textContent = runtime.cache && runtime.cache.size || "—";
   $("runtime-summary").textContent = runtime.cpu && runtime.memory
     ? `${runtime.cpu.usage} · ${runtime.memory.usage}` : "—";
 }
