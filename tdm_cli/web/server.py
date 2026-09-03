@@ -488,7 +488,13 @@ def _log_payload(entries) -> dict[str, Any]:
     return {
         "type": "log",
         "lines": [
-            {"seq": e.seq, "stamp": e.stamp, "text": e.text, "style": e.style}
+            {
+                "seq": e.seq,
+                "date": e.date,
+                "stamp": e.stamp,
+                "text": e.text,
+                "style": e.style,
+            }
             for e in entries
         ],
     }

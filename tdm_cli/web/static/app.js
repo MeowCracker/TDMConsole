@@ -647,7 +647,7 @@ function appendLog(lines) {
     if (e.seq <= seenLog) return;
     seenLog = e.seq;
     const line = el("div", "line");
-    line.append(el("span", "stamp", e.stamp));
+    line.append(el("span", "stamp", [e.date, e.stamp].filter(Boolean).join(" ")));
     const span = el("span", e.style ? "s-" + e.style : null, e.text);
     line.append(span);
     screen.append(line);

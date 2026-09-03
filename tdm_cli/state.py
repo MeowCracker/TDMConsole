@@ -21,6 +21,7 @@ class LogEntry:
     stamp: str  # HH:MM:SS, captured at emit time
     text: str
     style: str = ""  # "", "warn", "error", "notify"
+    date: str = ""  # YYYY-MM-DD, captured at emit time for WebUI
 
 
 @dataclass
@@ -66,11 +67,13 @@ class MinerState:
 
     def add_log(self, text: str, style: str = "") -> LogEntry:
         self._log_seq += 1
+        now = datetime.now()
         entry = LogEntry(
             seq=self._log_seq,
-            stamp=datetime.now().strftime("%X"),
+            stamp=now.strftime("%X"),
             text=text,
             style=style,
+            date=now.strftime("%Y-%m-%d"),
         )
         self.log_lines.append(entry)
         return entry

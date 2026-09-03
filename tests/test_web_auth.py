@@ -13,10 +13,12 @@ from tdm_cli.web.server import (
     _LoginThrottle,
     _MemorySessions,
     WebServer,
+    _log_payload,
     _runtime_payload,
     _login_response,
     _session_auth_middleware,
 )
+from tdm_cli.state import LogEntry
 
 
 class MemorySessionTests(unittest.TestCase):
@@ -184,6 +186,20 @@ class LoginThrottleTests(unittest.TestCase):
 
 
 class HealthcheckTests(unittest.IsolatedAsyncioTestCase):
+    def test_log_payload_includes_calendar_date(self) -> None:
+        payload = _log_payload(
+            [
+                LogEntry(
+                    seq=1,
+                    date="2026-09-03",
+                    stamp="12:34:56",
+                    text="message",
+                )
+            ]
+        )
+
+        self.assertEqual(payload["lines"][0]["date"], "2026-09-03")
+
     @patch("tdm_cli.web.server._cgroup_vcpu_limit", return_value=0.2)
     @patch("tdm_cli.web.server.time.time", return_value=1_700_003_661.0)
     @patch("tdm_cli.versioning.version_info")
