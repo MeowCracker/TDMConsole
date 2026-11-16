@@ -29,6 +29,7 @@ COMMANDS: dict[str, str] = {
     "/reload": "re-fetch inventory and channels",
     "/restart": "fully restart TDMConsole",
     "/update": "update the engine and restart (source/Docker only)",
+    "/update-schedule": '/update-schedule ["M H DOM MON DOW"|off] — scheduled engine updates',
     "/switch-mode": "/switch-mode tui|repl|web|headless — change interface mode (gui requires restart)",
     "/login": "show the pending device-code login prompt again",
     "/quit": "stop mining and exit",
@@ -273,6 +274,33 @@ class CommandProcessor:
             self._out(
                 "An engine update is already running or restart is pending.", "warn"
             )
+
+    def _cmd_update_schedule(self, args: list[str]) -> None:
+        expression = " ".join(args).strip()
+        if not expression:
+            current = self._m.engine_update_cron
+            if not current:
+                self._out(
+                    'Engine update schedule: off — use /update-schedule "0 4 * * *".',
+                    "dim",
+                )
+                return
+            upcoming = self._m.next_engine_update_at()
+            suffix = f" — next run {upcoming}" if upcoming else ""
+            self._out(f"Engine update schedule: {current}{suffix}")
+            return
+        try:
+            normalized = self._m.set_engine_update_cron(expression)
+        except ValueError as exc:
+            # Covers both unparsable text and an unwritable tdm-cli.json.
+            self._out(f"Invalid engine update schedule: {exc}", "error")
+            return
+        if not normalized:
+            self._out("Engine update schedule disabled.", "info")
+            return
+        upcoming = self._m.next_engine_update_at()
+        suffix = f" — next run {upcoming}" if upcoming else ""
+        self._out(f"Engine update schedule set to {normalized}{suffix}", "success")
 
     def _cmd_switch_mode(self, args: list[str]) -> None:
         from tdm_cli.prefs import MODES

@@ -43,8 +43,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import sys
 import webbrowser
 from dataclasses import dataclass
+from datetime import datetime
 from time import monotonic, time
 from typing import TYPE_CHECKING, Any, Callable, TypeVar
 
@@ -55,6 +57,12 @@ from translate import _
 
 from tdm_cli import console
 from tdm_cli.console import Color
+from tdm_cli.schedule import (
+    CronError,
+    load_engine_update_cron,
+    parse_cron,
+    store_engine_update_cron,
+)
 from tdm_cli.state import MinerState
 
 if TYPE_CHECKING:
@@ -73,6 +81,9 @@ logger = logging.getLogger("TwitchDrops")
 _RECONNECT_RESTART_DELAY = 180.0
 _RECONNECT_RESTART_FAILURES = 3
 _RECONNECT_DELAY_TOLERANCE = 1.0
+# How often the engine-update schedule compares the clock against the cron
+# expression. Cron resolution is one minute, so this only adds a little jitter.
+_ENGINE_SCHEDULE_POLL_SECONDS = 20.0
 _PROCESS_STARTED_AT_ENV = "TDMCONSOLE_PROCESS_STARTED_AT"
 _LAST_RESTART_AT_ENV = "TDMCONSOLE_LAST_RESTART_AT"
 
@@ -603,6 +614,11 @@ class GUIManager:
         self._switch_task: asyncio.Task[None] | None = None
         self._engine_update_task: asyncio.Task[None] | None = None
         self._engine_update_result: str | None = None
+        # Why the running engine update was started ("reconnect" / "schedule" /
+        # None for a user request) — decides what to do when it changes nothing.
+        self._engine_update_reason: str | None = None
+        self._engine_update_cron = load_engine_update_cron()
+        self._schedule_task: asyncio.Task[None] | None = None
         self._restart_requested = False
         self._restart_task: asyncio.Task[None] | None = None
         self._last_connection_failure_at: float | None = None
@@ -644,6 +660,49 @@ class GUIManager:
     @property
     def engine_update_result(self) -> str | None:
         return self._engine_update_result
+
+    @property
+    def engine_update_available(self) -> bool:
+        """Whether the engine can be refreshed in place.
+
+        Source checkouts and the Docker image update the engine on disk; a
+        frozen executable bundles it and must be replaced as a whole.
+        """
+        return not getattr(sys, "frozen", False)
+
+    @property
+    def engine_update_cron(self) -> str:
+        """Cron expression driving scheduled engine updates; '' = disabled."""
+        return getattr(self, "_engine_update_cron", "")
+
+    def set_engine_update_cron(self, expression: str) -> str:
+        """Validate, persist and apply a schedule expression ('' turns it off).
+
+        Raises :class:`tdm_cli.schedule.CronError` for bad text and
+        :class:`tdm_cli.schedule.ScheduleError` when the sidecar file cannot be
+        written — both are ``ValueError`` subclasses, so command handlers can
+        report them directly.
+        """
+        normalized = store_engine_update_cron(expression)
+        self._engine_update_cron = normalized
+        self._update_log(
+            f"Engine update schedule set to {normalized}."
+            if normalized
+            else "Engine update schedule disabled.",
+            "info",
+        )
+        return normalized
+
+    def next_engine_update_at(self, now: datetime | None = None) -> str | None:
+        """Local ISO minute stamp of the next scheduled run, if any."""
+        expression = self.engine_update_cron
+        if not expression:
+            return None
+        try:
+            upcoming = parse_cron(expression).next_run(now or datetime.now())
+        except CronError:
+            return None
+        return upcoming.isoformat(timespec="minutes") if upcoming else None
 
     async def wait_until_closed(self) -> None:
         # Doubles as an interruptible sleep: twitch.py awaits this with a timeout
@@ -688,10 +747,28 @@ class GUIManager:
             return
 
         self._long_reconnect_failures = 0
-        self.request_restart(
-            "Twitch reconnect failed 3 times; restarting TDMConsole...",
-            "error",
-        )
+        self._recover_from_repeated_failures()
+
+    def _recover_from_repeated_failures(self) -> None:
+        """Twitch stayed unreachable across the configured long retries.
+
+        A pinned engine that no longer matches Twitch's API is the usual cause,
+        so refresh it first — the update path restarts the process itself. When
+        updates are unavailable (frozen build, no Git, update already running)
+        fall back to the plain restart this used to do unconditionally.
+        """
+        message = f"Twitch reconnect failed {_RECONNECT_RESTART_FAILURES} times"
+        if (
+            self.engine_update_available
+            and getattr(self, "_engine_update_task", None) is None
+            and self.request_engine_update(reason="reconnect")
+        ):
+            self._update_log(
+                f"{message}; refreshing the engine before the next restart.",
+                "warn",
+            )
+            return
+        self.request_restart(f"{message}; restarting TDMConsole...", "error")
 
     def _reset_connection_failures(self) -> None:
         self._last_connection_failure_at = None
@@ -705,6 +782,8 @@ class GUIManager:
         # gives ``stop()`` something symmetric to cancel.
         if self._poll_task is None:
             self._poll_task = asyncio.create_task(self._poll())
+        if getattr(self, "_schedule_task", None) is None:
+            self._schedule_task = asyncio.create_task(self._engine_schedule_loop())
         self.frontend.start()
 
     async def _poll(self) -> None:
@@ -720,7 +799,51 @@ class GUIManager:
         if self._poll_task is not None:
             self._poll_task.cancel()
             self._poll_task = None
+        if getattr(self, "_schedule_task", None) is not None:
+            self._schedule_task.cancel()
+            self._schedule_task = None
         self.frontend.stop()
+
+    async def _engine_schedule_loop(self) -> None:
+        """Fire scheduled engine updates (cron expression from tdm-cli.json).
+
+        Polling instead of sleeping until the next run keeps the loop honest
+        across clock jumps, host suspend and live schedule edits; cron has
+        minute resolution, so the added latency is imperceptible.
+        """
+        last_expression: str | None = None
+        last_fired: str | None = None
+        try:
+            while True:
+                await asyncio.sleep(_ENGINE_SCHEDULE_POLL_SECONDS)
+                expression = self.engine_update_cron
+                if expression != last_expression:
+                    # A new schedule may legitimately fire in this same minute.
+                    last_expression = expression
+                    last_fired = None
+                if not expression:
+                    continue
+                try:
+                    cron = parse_cron(expression)
+                except CronError:
+                    continue
+                now = datetime.now()
+                minute_key = now.strftime("%Y-%m-%dT%H:%M")
+                if minute_key == last_fired or not cron.matches(now):
+                    continue
+                last_fired = minute_key
+                if not self.engine_update_available:
+                    continue
+                if self._engine_update_task is not None or self._restart_requested:
+                    continue
+                self._update_log(
+                    f"Scheduled engine update ({expression}) starting...", "info"
+                )
+                self.request_engine_update(reason="schedule")
+        except asyncio.CancelledError:
+            raise
+        finally:
+            self._schedule_task = None
 
     def request_frontend(self, mode: str) -> None:
         """Switch the interface mode live, without interrupting mining.
@@ -758,11 +881,17 @@ class GUIManager:
         self._twitch.change_state(State.CHANNEL_SWITCH)
         return True
 
-    def request_engine_update(self) -> bool:
-        """Start one non-blocking engine update shared by every CLI frontend."""
+    def request_engine_update(self, *, reason: str | None = None) -> bool:
+        """Start one non-blocking engine update shared by every CLI frontend.
+
+        ``reason`` records *why* the update was requested so a no-op result can
+        be handled sensibly: a reconnect fallback still restarts, while a
+        scheduled check simply reports "already up to date".
+        """
         if self._engine_update_task is not None or self._restart_requested:
             return False
         self._engine_update_result = None
+        self._engine_update_reason = reason
         self._update_log("Checking for engine updates...", "info")
         self._engine_update_task = asyncio.create_task(self._update_engine())
         return True
@@ -798,11 +927,19 @@ class GUIManager:
     async def _update_engine(self) -> None:
         from tdm_cli.updater import EngineUpdateError, update_engine
 
+        reason = getattr(self, "_engine_update_reason", None)
         try:
             result = await asyncio.to_thread(update_engine)
             if not result.changed:
                 self._engine_update_result = "up_to_date"
                 self._update_log(result.message, "success")
+                if reason == "reconnect":
+                    # Nothing to pull, so the previous restart simply wasn't
+                    # enough — keep cycling the process rather than stalling.
+                    self._schedule_restart(
+                        "Engine is already current; restarting TDMConsole...",
+                        "notify",
+                    )
                 return
             self._engine_update_result = "updated"
             self._update_log(result.message, "success")
@@ -810,11 +947,21 @@ class GUIManager:
         except EngineUpdateError as exc:
             self._engine_update_result = "failed"
             self._update_log(f"Engine update failed: {exc}", "error")
+            if reason == "reconnect":
+                self._schedule_restart(
+                    "Engine update unavailable; restarting TDMConsole...", "warn"
+                )
         except Exception as exc:  # defensive: keep the miner alive
             self._engine_update_result = "failed"
             self._update_log(f"Unexpected engine update error: {exc}", "error")
+            if reason == "reconnect":
+                self._schedule_restart(
+                    "Engine update failed unexpectedly; restarting TDMConsole...",
+                    "warn",
+                )
         finally:
             self._engine_update_task = None
+            self._engine_update_reason = None
 
     async def _switch_frontend(self, mode: str) -> None:
         try:

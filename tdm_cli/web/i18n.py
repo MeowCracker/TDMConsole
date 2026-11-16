@@ -77,6 +77,12 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.mode_dark": "Dark",
         "settings.note": "Theme & language apply instantly and are saved in this browser. "
         "Priority-mode changes apply on the next reload.",
+        "settings.engine_schedule": "Engine update schedule",
+        "settings.engine_schedule_hint": "5-field cron in the server's local time: "
+        "minute hour day month weekday. Blank turns it off.",
+        "settings.engine_schedule_next": "Next run",
+        "settings.engine_schedule_frozen": "This build bundles the engine and can't "
+        "update it — use the Docker image or a source checkout.",
         "settings.save": "Save",
         "settings.proxy_masked": "The proxy password is masked — re-enter the full proxy URL.",
         "settings.cancel": "Cancel",
@@ -145,6 +151,10 @@ _EXTRA: dict[str, dict[str, str]] = {
         "settings.mode_light": "浅色",
         "settings.mode_dark": "深色",
         "settings.note": "主题与语言即时生效并保存在此浏览器中。优先模式的更改将在下次重新加载时生效。",
+        "settings.engine_schedule": "内核更新计划任务",
+        "settings.engine_schedule_hint": "5 段 cron，使用服务器本地时间：分 时 日 月 周。留空即关闭。",
+        "settings.engine_schedule_next": "下次执行",
+        "settings.engine_schedule_frozen": "此构建已内置内核，无法更新 — 请使用 Docker 镜像或源码运行。",
         "settings.save": "保存",
         "settings.proxy_masked": "代理密码已脱敏显示 — 请重新输入完整的代理地址。",
         "settings.cancel": "取消",

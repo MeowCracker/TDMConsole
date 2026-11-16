@@ -389,9 +389,17 @@ class SettingsScreen(Screen[None]):
                 allow_blank=False,
                 id="set-quality",
             )
+        with Horizontal():
+            yield Label("Engine update cron")
+            yield Input(
+                value=self._m.engine_update_cron,
+                placeholder="0 4 * * * (blank = off)",
+                id="set-cron",
+            )
         yield Static(
-            "Esc saves to settings.json. Proxy changes trigger a reload; "
-            "a language change fully applies after the next reload (r).",
+            "Esc saves to settings.json (the cron schedule goes to tdm-cli.json). "
+            "Proxy changes trigger a reload; a language change fully applies after "
+            "the next reload (r).",
             id="settings-note",
         )
 
@@ -409,6 +417,12 @@ class SettingsScreen(Screen[None]):
         )
         settings.save()
         self._m.print("Settings saved.")
+        cron_text = self.query_one("#set-cron", Input).value.strip()
+        try:
+            self._m.set_engine_update_cron(cron_text)
+        except ValueError as exc:
+            # Bad cron text or a read-only data dir: keep the rest of the save.
+            self._m.print(f"Engine update schedule not saved: {exc}")
         if proxy_changed:
             self._m.print("Proxy changed — reloading...")
             self._m._twitch.change_state(State.RESTART)

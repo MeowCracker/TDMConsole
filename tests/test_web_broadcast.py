@@ -21,6 +21,8 @@ def _make_manager() -> SimpleNamespace:
         restart_requested=False,
         engine_update_running=False,
         engine_update_result=None,
+        engine_update_cron="",
+        engine_update_available=True,
     )
 
 
@@ -75,6 +77,14 @@ class StateSignatureTests(unittest.TestCase):
         before = _state_signature(manager)
 
         manager.state.websockets[0] = ("connected", 3)
+
+        self.assertNotEqual(before, _state_signature(manager))
+
+    def test_engine_update_schedule_moves_signature(self) -> None:
+        manager = _make_manager()
+        before = _state_signature(manager)
+
+        manager.engine_update_cron = "0 4 * * *"
 
         self.assertNotEqual(before, _state_signature(manager))
 

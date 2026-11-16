@@ -102,6 +102,20 @@ Since the application in Docker or with source code has more flexibility, you ga
 
 After doing above, the program will check whether the core is updatable and try to do that.
 
+### Scheduled updates
+
+Besides the manual button, the core can be refreshed on a cron schedule:
+
+- WebUI: Settings → "Engine update schedule", fill in a cron expression
+- REPL: `/update-schedule "0 4 * * *"` — bare `/update-schedule` shows the current plan, `/update-schedule off` disables it
+- TUI: the "Engine update cron" field on the settings screen
+
+The expression is the standard 5-field form (minute hour day month weekday) evaluated in the server's local time — e.g. `0 4 * * *` is 04:00 daily, `30 2 * * MON` is Mondays at 02:30. Leaving it blank turns the schedule off. The value lives in `tdm-cli.json` next to `settings.json`, so the upstream engine's own settings file is never touched.
+
+### Refreshing the core after repeated connection failures
+
+If three long reconnect attempts (~180 s apart) fail in a row, the program refreshes the engine before restarting, since a pinned engine that no longer matches Twitch's API is the usual cause. When the engine is already current — or the build is a frozen executable that cannot update itself — it falls back to a plain process restart.
+
 ## Why you made this?
 
 Initially, im using GUI version of TDM. I mean the version DevilXD made. But the version require a GUI environment. After i moved my services to my server, which has no GUI env, this is not quite usable. Even if THERE IS a solution with baseimage-gui Docker image to build the base, the resource consume is a little big for my low resource server. So i moved to webui version of TDM made by rangermix. However, the webui version cannot get an on-time update, causing the failure of mining.

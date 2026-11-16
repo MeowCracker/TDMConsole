@@ -411,6 +411,13 @@ def snapshot(manager: GUIManager) -> dict[str, Any]:
             "proxy": mask_proxy(settings.proxy),
             "priorityMode": settings.priority_mode.name,
         },
+        # Engine-update controls: the cron schedule lives in tdm-cli.json (the
+        # upstream settings.json drops keys it doesn't know about on save).
+        "engineUpdate": {
+            "cron": manager.engine_update_cron,
+            "nextRun": manager.next_engine_update_at(),
+            "available": manager.engine_update_available,
+        },
     }
 
 
@@ -481,6 +488,8 @@ def _state_signature(manager: GUIManager) -> tuple:
         tuple(sorted(settings.exclude)),
         str(settings.proxy),
         settings.priority_mode.name,
+        manager.engine_update_cron,
+        manager.engine_update_available,
     )
 
 

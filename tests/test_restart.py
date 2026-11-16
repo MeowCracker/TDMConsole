@@ -12,20 +12,32 @@ from tdm_cli import bootstrap
 bootstrap.setup()
 
 from tdm_cli.gui import GUIManager, _runtime_timestamps, mark_process_restart
+from tdm_cli.updater import EngineUpdateError
+
+
+def make_manager() -> GUIManager:
+    """A minimally-wired GUIManager (no frontend, no event loop tasks yet)."""
+    manager = GUIManager.__new__(GUIManager)
+    manager._engine_update_task = None
+    manager._engine_update_result = None
+    manager._engine_update_reason = None
+    manager._engine_update_cron = ""
+    manager._restart_requested = False
+    manager._restart_task = None
+    manager._last_connection_failure_at = None
+    manager._long_reconnect_failures = 0
+    manager._close_requested = asyncio.Event()
+    manager._update_log = Mock()
+    manager.close = Mock()
+    # Engine refreshes are covered by EngineRefreshTests; default to "not
+    # available" so the plain restart path stays observable here.
+    manager.request_engine_update = Mock(return_value=False)
+    return manager
 
 
 class RestartTests(unittest.IsolatedAsyncioTestCase):
     def make_manager(self) -> GUIManager:
-        manager = GUIManager.__new__(GUIManager)
-        manager._engine_update_task = None
-        manager._restart_requested = False
-        manager._restart_task = None
-        manager._last_connection_failure_at = None
-        manager._long_reconnect_failures = 0
-        manager._close_requested = asyncio.Event()
-        manager._update_log = Mock()
-        manager.close = Mock()
-        return manager
+        return make_manager()
 
     @staticmethod
     async def fail_to_connect() -> None:
@@ -148,6 +160,84 @@ class RestartTests(unittest.IsolatedAsyncioTestCase):
             mark_process_restart()
 
             self.assertEqual(_runtime_timestamps(), (1_000.0, 2_000.0))
+
+
+class EngineRefreshTests(unittest.IsolatedAsyncioTestCase):
+    """Repeated reconnect failures refresh the engine before restarting."""
+
+    async def _fail_long_reconnects(self, manager: GUIManager) -> None:
+        clock = iter((0.0, 0.1, 180.1, 180.2, 360.2, 360.3, 540.3, 540.4))
+        with patch("tdm_cli.gui.monotonic", side_effect=lambda: next(clock)):
+            for _ in range(4):
+                with self.assertRaises(aiohttp.ClientConnectionError):
+                    await manager.coro_unless_closed(RestartTests.fail_to_connect())
+
+    async def test_repeated_failures_refresh_the_engine_instead_of_restarting(
+        self,
+    ) -> None:
+        manager = make_manager()
+        manager.request_engine_update = Mock(return_value=True)
+        manager.request_restart = Mock(return_value=True)
+
+        await self._fail_long_reconnects(manager)
+
+        manager.request_engine_update.assert_called_once_with(reason="reconnect")
+        manager.request_restart.assert_not_called()
+
+    async def test_repeated_failures_restart_when_updates_are_unavailable(self) -> None:
+        manager = make_manager()
+        manager.request_engine_update = Mock(return_value=False)
+        manager.request_restart = Mock(return_value=True)
+
+        await self._fail_long_reconnects(manager)
+
+        manager.request_restart.assert_called_once_with(
+            "Twitch reconnect failed 3 times; restarting TDMConsole...", "error"
+        )
+
+    async def test_current_engine_is_followed_by_a_restart(self) -> None:
+        manager = make_manager()
+        manager._engine_update_reason = "reconnect"
+        manager._schedule_restart = Mock(return_value=True)
+        result = SimpleNamespace(changed=False, message="Engine is already up to date")
+
+        with patch("tdm_cli.gui.asyncio.to_thread", new=AsyncMock(return_value=result)):
+            await manager._update_engine()
+
+        self.assertEqual(manager._engine_update_result, "up_to_date")
+        manager._schedule_restart.assert_called_once_with(
+            "Engine is already current; restarting TDMConsole...", "notify"
+        )
+        self.assertIsNone(manager._engine_update_reason)
+
+    async def test_failed_engine_update_still_restarts_after_reconnect(self) -> None:
+        manager = make_manager()
+        manager._engine_update_reason = "reconnect"
+        manager._schedule_restart = Mock(return_value=True)
+
+        with patch(
+            "tdm_cli.gui.asyncio.to_thread",
+            new=AsyncMock(side_effect=EngineUpdateError("no git metadata")),
+        ):
+            await manager._update_engine()
+
+        self.assertEqual(manager._engine_update_result, "failed")
+        manager._schedule_restart.assert_called_once_with(
+            "Engine update unavailable; restarting TDMConsole...", "warn"
+        )
+
+    async def test_scheduled_update_does_not_restart_when_engine_is_current(
+        self,
+    ) -> None:
+        manager = make_manager()
+        manager._engine_update_reason = "schedule"
+        manager._schedule_restart = Mock(return_value=True)
+        result = SimpleNamespace(changed=False, message="Engine is already up to date")
+
+        with patch("tdm_cli.gui.asyncio.to_thread", new=AsyncMock(return_value=result)):
+            await manager._update_engine()
+
+        manager._schedule_restart.assert_not_called()
 
 
 if __name__ == "__main__":

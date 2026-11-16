@@ -842,6 +842,29 @@ function openSettings() {
   proxyField.append(proxy);
   node.append(proxyField);
 
+  // ---- engine update schedule (cron; stored server-side in tdm-cli.json) ----
+  const engineUpdate = (state && state.engineUpdate) || {};
+  const cronField = el("div", "field");
+  cronField.append(el("label", null,
+    t("settings.engine_schedule", "Engine update schedule")));
+  const cron = el("input");
+  cron.value = engineUpdate.cron || "";
+  cron.placeholder = "0 4 * * * (blank = off)";
+  cron.spellcheck = false;
+  cron.setAttribute("autocomplete", "off");
+  cronField.append(cron);
+  cronField.append(el("small", null, t("settings.engine_schedule_hint",
+    "5-field cron in the server's local time: minute hour day month weekday. Blank turns it off.")));
+  if (engineUpdate.nextRun) {
+    cronField.append(el("small", null,
+      `${t("settings.engine_schedule_next", "Next run")}: ${engineUpdate.nextRun}`));
+  }
+  if (engineUpdate.available === false) {
+    cronField.append(el("small", null, t("settings.engine_schedule_frozen",
+      "This build bundles the engine and can't update it — use the Docker image or a source checkout.")));
+  }
+  node.append(cronField);
+
   const modeField = el("div", "field");
   modeField.append(el("label", null, t("settings.priority_mode", "Priority mode")));
   const modeSel = el("select");
@@ -936,8 +959,14 @@ function openSettings() {
       // triggers a needless restart.
       const p = proxy.value.trim();
       const origProxy = (s.proxy || "").trim();
+      const cronValue = cron.value.trim();
+      const origCron = (engineUpdate.cron || "").trim();
       if (modeSel.value !== s.priorityMode) {
         send(`/priority-mode ${modeSel.value.toLowerCase()}`);
+      }
+      // Cron is validated server-side; bad text comes back as a log error line.
+      if (cronValue !== origCron) {
+        send(cronValue ? `/update-schedule ${cronValue}` : "/update-schedule off");
       }
       if (p !== origProxy) {
         // The server masks the proxy password as ****; a locally edited

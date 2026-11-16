@@ -3,7 +3,8 @@ from __future__ import annotations
 from types import SimpleNamespace
 import unittest
 
-from tdm_cli.web.server import _campaign_snapshot
+from tdm_cli.state import MinerState
+from tdm_cli.web.server import _campaign_snapshot, snapshot
 
 
 class CampaignSnapshotTests(unittest.TestCase):
@@ -52,6 +53,50 @@ class CampaignSnapshotTests(unittest.TestCase):
                 }
             ],
         )
+
+
+class DashboardSnapshotTests(unittest.TestCase):
+    def _manager(self) -> SimpleNamespace:
+        settings = SimpleNamespace(
+            priority=["Game A"],
+            exclude={"Game B"},
+            proxy="",
+            priority_mode=SimpleNamespace(name="PRIORITY_ONLY"),
+        )
+        return SimpleNamespace(
+            state=MinerState(),
+            _twitch=SimpleNamespace(settings=settings, channels={}, inventory=[]),
+            channels=SimpleNamespace(get_selection=lambda: None),
+            mode="web",
+            restart_requested=False,
+            engine_update_running=False,
+            engine_update_result=None,
+            engine_update_cron="0 4 * * *",
+            engine_update_available=True,
+            next_engine_update_at=lambda: "2026-11-17T04:00",
+        )
+
+    def test_engine_update_schedule_is_exposed_to_the_browser(self) -> None:
+        result = snapshot(self._manager())
+
+        self.assertEqual(
+            result["engineUpdate"],
+            {
+                "cron": "0 4 * * *",
+                "nextRun": "2026-11-17T04:00",
+                "available": True,
+            },
+        )
+
+    def test_disabled_schedule_reports_no_next_run(self) -> None:
+        manager = self._manager()
+        manager.engine_update_cron = ""
+        manager.next_engine_update_at = lambda: None
+
+        result = snapshot(manager)
+
+        self.assertEqual(result["engineUpdate"]["cron"], "")
+        self.assertIsNone(result["engineUpdate"]["nextRun"])
 
 
 if __name__ == "__main__":
