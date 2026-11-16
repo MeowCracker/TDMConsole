@@ -112,6 +112,10 @@ Besides the manual button, the core can be refreshed on a cron schedule:
 
 The expression is the standard 5-field form (minute hour day month weekday) evaluated in the server's local time — e.g. `0 4 * * *` is 04:00 daily, `30 2 * * MON` is Mondays at 02:30. Leaving it blank turns the schedule off. The value lives in `tdm-cli.json` next to `settings.json`, so the upstream engine's own settings file is never touched.
 
+### Refresh once on the first launch
+
+The very first start against a fresh data directory (first deployment, or a new Docker volume) refreshes the engine automatically, then restarts into it — and never repeats. The marker lives in `tdm-cli.json` as `engine_bootstrapped`; delete that field to force one more refresh on the next start.
+
 ### Refreshing the core after repeated connection failures
 
 If three long reconnect attempts (~180 s apart) fail in a row, the program refreshes the engine before restarting, since a pinned engine that no longer matches Twitch's API is the usual cause. When the engine is already current — or the build is a frozen executable that cannot update itself — it falls back to a plain process restart.

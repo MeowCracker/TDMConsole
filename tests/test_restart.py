@@ -29,6 +29,8 @@ def make_manager() -> GUIManager:
     manager._close_requested = asyncio.Event()
     manager._update_log = Mock()
     manager.close = Mock()
+    # Writing the first-launch marker touches the data dir; keep tests offline.
+    manager._mark_engine_bootstrap = Mock()
     # Engine refreshes are covered by EngineRefreshTests; default to "not
     # available" so the plain restart path stays observable here.
     manager.request_engine_update = Mock(return_value=False)
@@ -225,6 +227,26 @@ class EngineRefreshTests(unittest.IsolatedAsyncioTestCase):
         manager._schedule_restart.assert_called_once_with(
             "Engine update unavailable; restarting TDMConsole...", "warn"
         )
+
+    async def test_successful_update_records_the_first_launch_flag(self) -> None:
+        manager = make_manager()
+        manager._schedule_restart = Mock(return_value=True)
+        result = SimpleNamespace(changed=True, message="Engine updated")
+
+        with patch("tdm_cli.gui.asyncio.to_thread", new=AsyncMock(return_value=result)):
+            await manager._update_engine()
+
+        manager._mark_engine_bootstrap.assert_called_once_with()
+
+    async def test_up_to_date_update_records_the_first_launch_flag(self) -> None:
+        manager = make_manager()
+        manager._schedule_restart = Mock(return_value=True)
+        result = SimpleNamespace(changed=False, message="Engine is already up to date")
+
+        with patch("tdm_cli.gui.asyncio.to_thread", new=AsyncMock(return_value=result)):
+            await manager._update_engine()
+
+        manager._mark_engine_bootstrap.assert_called_once_with()
 
     async def test_scheduled_update_does_not_restart_when_engine_is_current(
         self,

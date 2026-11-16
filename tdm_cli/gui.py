@@ -59,7 +59,10 @@ from tdm_cli import console
 from tdm_cli.console import Color
 from tdm_cli.schedule import (
     CronError,
+    ScheduleError,
+    engine_bootstrap_done as schedule_bootstrap_done,
     load_engine_update_cron,
+    mark_engine_bootstrap_done,
     parse_cron,
     store_engine_update_cron,
 )
@@ -675,6 +678,11 @@ class GUIManager:
         """Cron expression driving scheduled engine updates; '' = disabled."""
         return getattr(self, "_engine_update_cron", "")
 
+    @property
+    def engine_bootstrap_done(self) -> bool:
+        """Whether this data dir already had its one-off first-launch refresh."""
+        return schedule_bootstrap_done()
+
     def set_engine_update_cron(self, expression: str) -> str:
         """Validate, persist and apply a schedule expression ('' turns it off).
 
@@ -703,6 +711,29 @@ class GUIManager:
         except CronError:
             return None
         return upcoming.isoformat(timespec="minutes") if upcoming else None
+
+    def _maybe_bootstrap_engine(self) -> bool:
+        """Refresh the engine once on a fresh deployment.
+
+        A newly deployed image or checkout can ship a pinned engine that is
+        already behind Twitch's API; one update on first launch is cheaper than
+        waiting for three failed reconnects to notice.
+        """
+        if not self.engine_update_available or self.engine_bootstrap_done:
+            return False
+        if self._engine_update_task is not None or self._restart_requested:
+            return False
+        self._update_log(
+            "First start on this data dir — refreshing the engine...", "info"
+        )
+        return self.request_engine_update(reason="first-run")
+
+    def _mark_engine_bootstrap(self) -> None:
+        """Persist the first-launch flag; a read-only data dir must not break mining."""
+        try:
+            mark_engine_bootstrap_done()
+        except ScheduleError as exc:
+            logger.warning("Could not record the first engine refresh: %s", exc)
 
     async def wait_until_closed(self) -> None:
         # Doubles as an interruptible sleep: twitch.py awaits this with a timeout
@@ -785,6 +816,7 @@ class GUIManager:
         if getattr(self, "_schedule_task", None) is None:
             self._schedule_task = asyncio.create_task(self._engine_schedule_loop())
         self.frontend.start()
+        self._maybe_bootstrap_engine()
 
     async def _poll(self) -> None:
         try:
@@ -933,6 +965,7 @@ class GUIManager:
             if not result.changed:
                 self._engine_update_result = "up_to_date"
                 self._update_log(result.message, "success")
+                self._mark_engine_bootstrap()
                 if reason == "reconnect":
                     # Nothing to pull, so the previous restart simply wasn't
                     # enough — keep cycling the process rather than stalling.
@@ -943,6 +976,9 @@ class GUIManager:
                 return
             self._engine_update_result = "updated"
             self._update_log(result.message, "success")
+            # Before the restart below: the replacement process must not repeat
+            # the first-launch refresh.
+            self._mark_engine_bootstrap()
             self._schedule_restart("Restarting to load the updated engine...", "notify")
         except EngineUpdateError as exc:
             self._engine_update_result = "failed"

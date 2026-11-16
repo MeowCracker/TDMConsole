@@ -29,6 +29,7 @@ from pathlib import Path
 
 CLI_CONFIG_FILENAME = "tdm-cli.json"
 ENGINE_UPDATE_CRON_KEY = "engine_update_cron"
+ENGINE_BOOTSTRAP_KEY = "engine_bootstrapped"
 
 # Values accepted instead of an expression to switch the schedule off.
 DISABLED_WORDS = frozenset({"off", "none", "disabled", "disable", "clear", "-"})
@@ -282,3 +283,22 @@ def store_engine_update_cron(expression: str, path: Path | str | None = None) ->
         config.pop(ENGINE_UPDATE_CRON_KEY, None)
     save_cli_config(config, path)
     return normalized
+
+
+def engine_bootstrap_done(path: Path | str | None = None) -> bool:
+    """Whether the one-off first-launch engine refresh already ran here.
+
+    The flag lives in the data dir, so a fresh deployment (new volume / new
+    checkout) refreshes the engine once, while later restarts — including the
+    restart the refresh itself triggers — skip it.
+    """
+    return load_cli_config(path).get(ENGINE_BOOTSTRAP_KEY) is True
+
+
+def mark_engine_bootstrap_done(path: Path | str | None = None) -> None:
+    """Record that the first-launch engine refresh completed."""
+    config = load_cli_config(path)
+    if config.get(ENGINE_BOOTSTRAP_KEY) is True:
+        return
+    config[ENGINE_BOOTSTRAP_KEY] = True
+    save_cli_config(config, path)

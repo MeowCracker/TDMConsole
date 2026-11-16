@@ -16,7 +16,9 @@ bootstrap.setup()
 from tdm_cli.gui import GUIManager
 from tdm_cli.schedule import (
     CronError,
+    engine_bootstrap_done,
     load_engine_update_cron,
+    mark_engine_bootstrap_done,
     normalize_cron,
     parse_cron,
     store_engine_update_cron,
@@ -146,6 +148,19 @@ class SchedulePersistenceTests(unittest.TestCase):
                     path.write_text(payload, encoding="utf-8")
                     self.assertEqual(load_engine_update_cron(path), "")
 
+    def test_bootstrap_flag_round_trip(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self._path(tmp)
+
+            self.assertFalse(engine_bootstrap_done(path))
+            mark_engine_bootstrap_done(path)
+            self.assertTrue(engine_bootstrap_done(path))
+            # Marking again is a no-op and keeps the schedule untouched.
+            store_engine_update_cron("0 4 * * *", path)
+            mark_engine_bootstrap_done(path)
+            self.assertTrue(engine_bootstrap_done(path))
+            self.assertEqual(load_engine_update_cron(path), "0 4 * * *")
+
     def test_invalid_expression_does_not_touch_the_file(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = self._path(tmp)
@@ -218,6 +233,65 @@ class ManagerScheduleTests(unittest.TestCase):
         manager._engine_update_cron = "not a cron"
 
         self.assertIsNone(manager.next_engine_update_at())
+
+
+class BootstrapEngineTests(unittest.TestCase):
+    """A fresh deployment refreshes the engine once, then never again."""
+
+    def _manager(self) -> GUIManager:
+        manager = GUIManager.__new__(GUIManager)
+        manager._engine_update_cron = ""
+        manager._engine_update_task = None
+        manager._restart_requested = False
+        manager._update_log = Mock()
+        manager.request_engine_update = Mock(return_value=True)
+        return manager
+
+    def test_first_start_requests_a_refresh(self) -> None:
+        manager = self._manager()
+
+        with patch("tdm_cli.gui.schedule_bootstrap_done", return_value=False):
+            self.assertTrue(GUIManager._maybe_bootstrap_engine(manager))
+
+        manager.request_engine_update.assert_called_once_with(reason="first-run")
+
+    def test_later_starts_skip_the_refresh(self) -> None:
+        manager = self._manager()
+
+        with patch("tdm_cli.gui.schedule_bootstrap_done", return_value=True):
+            self.assertFalse(GUIManager._maybe_bootstrap_engine(manager))
+
+        manager.request_engine_update.assert_not_called()
+
+    def test_frozen_builds_never_try(self) -> None:
+        manager = self._manager()
+
+        with (
+            patch("tdm_cli.gui.schedule_bootstrap_done", return_value=False),
+            patch("tdm_cli.gui.sys.frozen", True, create=True),
+        ):
+            self.assertFalse(GUIManager._maybe_bootstrap_engine(manager))
+
+        manager.request_engine_update.assert_not_called()
+
+    def test_real_flag_flips_after_the_first_run(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "tdm-cli.json"
+            manager = self._manager()
+
+            with patch("tdm_cli.schedule.cli_config_path", return_value=path):
+                self.assertTrue(GUIManager._maybe_bootstrap_engine(manager))
+                mark_engine_bootstrap_done(path)
+                self.assertFalse(GUIManager._maybe_bootstrap_engine(manager))
+
+    def test_in_progress_update_skips_the_refresh(self) -> None:
+        manager = self._manager()
+        manager._engine_update_task = Mock()
+
+        with patch("tdm_cli.gui.schedule_bootstrap_done", return_value=False):
+            self.assertFalse(GUIManager._maybe_bootstrap_engine(manager))
+
+        manager.request_engine_update.assert_not_called()
 
 
 class _StopLoop(Exception):
