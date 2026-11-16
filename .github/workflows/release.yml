@@ -25,7 +25,7 @@ jobs:
       release_tag: ${{ steps.version.outputs.release_tag }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Resolve short commit version
         id: version
         shell: bash
@@ -58,7 +58,9 @@ jobs:
             build_name: tdmconsole
             macos_suffix: macos-x64
             release_name: TDMConsole-macos-x64.tar.gz
-          - os: macos-14                # Apple Silicon runner
+          # macOS 14 images were fully retired on 2026-11-02; macos-15 is the
+          # current Arm64 (Apple Silicon) label, macos-15-intel the x64 one.
+          - os: macos-15                # Apple Silicon runner
             asset: TDMConsole-macos-arm64
             build_name: tdmconsole
             macos_suffix: macos-arm64
@@ -66,7 +68,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout (with submodule — PyInstaller bundles the upstream code)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           submodules: recursive
 
@@ -77,7 +79,7 @@ jobs:
         run: git submodule update --remote --recursive TwitchDropsMiner
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v10
         with:
           enable-cache: true
 
@@ -135,7 +137,7 @@ jobs:
         run: tar -czf "dist/${{ matrix.release_name }}" -C dist "${{ matrix.asset }}"
 
       - name: Upload platform artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.release_name }}
           path: dist/${{ matrix.release_name }}
@@ -143,7 +145,7 @@ jobs:
 
       - name: Upload macOS DMG artifact
         if: runner.os == 'macOS'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: TDMConsole-${{ matrix.macos_suffix }}.dmg
           path: dist/TDMConsole-${{ matrix.macos_suffix }}.dmg
@@ -158,13 +160,13 @@ jobs:
       contents: write
     steps:
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: release-assets
           merge-multiple: true
 
       - name: Publish release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.prepare.outputs.release_tag }}
           name: TDMConsole ${{ needs.prepare.outputs.version }}
